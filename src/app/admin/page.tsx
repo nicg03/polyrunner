@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { createClient, getCurrentProfile } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
+import { query } from "@/lib/db";
 import { AthleteForm, MarketAdminRow, MarketForm, RaceForm } from "./forms";
 import type { Athlete, Race } from "@/lib/types";
 
@@ -21,25 +22,29 @@ export default async function AdminPage() {
       <div className="mx-auto mt-16 max-w-xl rounded-xl border bg-card p-6 text-sm">
         <h1 className="mb-2 text-lg font-semibold">Area riservata</h1>
         <p className="text-muted-foreground">
-          Solo gli admin possono gestire gare e mercati. Per diventare admin esegui nel SQL
-          editor di Supabase:
+          Solo gli admin possono gestire gare e mercati. Il primo utente registrato è admin;
+          per promuoverne altri esegui sul database:
         </p>
         <pre className="mt-3 overflow-x-auto rounded-lg bg-muted p-3 text-xs">
-          {`update profiles set is_admin = true where username = '${profile.username}';`}
+          {`update users set is_admin = true where username = '${profile.username}';`}
         </pre>
       </div>
     );
   }
 
-  const supabase = await createClient();
-  const [{ data: races }, { data: athletes }, { data: markets }] = await Promise.all([
-    supabase.from("races").select("*").order("starts_at", { ascending: false }),
-    supabase.from("athletes").select("*").order("name"),
-    supabase
-      .from("markets")
-      .select("id, status, race:races(name), athlete:athletes(name)")
-      .neq("status", "resolved")
-      .order("closes_at"),
+  const [races, athletes, markets] = await Promise.all([
+    query<Race>("select * from races order by starts_at desc"),
+    query<Athlete>("select * from athletes order by name"),
+    query<AdminMarket>(
+      `select m.id, m.status,
+              jsonb_build_object('name', r.name) as race,
+              jsonb_build_object('name', a.name) as athlete
+         from markets m
+         join races r on r.id = m.race_id
+         join athletes a on a.id = m.athlete_id
+        where m.status <> 'resolved'
+        order by m.closes_at`,
+    ),
   ]);
 
   return (
@@ -54,7 +59,7 @@ export default async function AdminPage() {
           <AthleteForm />
         </Panel>
         <Panel title="Nuovo mercato">
-          <MarketForm races={(races ?? []) as Race[]} athletes={(athletes ?? []) as Athlete[]} />
+          <MarketForm races={races} athletes={athletes} />
         </Panel>
       </div>
 
@@ -65,10 +70,10 @@ export default async function AdminPage() {
             Inserisci il tempo ufficiale (mm:ss o h:mm:ss): la fascia vincente paga 1 credito per quota.
           </p>
         </div>
-        {(markets ?? []).length === 0 ? (
+        {markets.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nessun mercato aperto.</p>
         ) : (
-          ((markets ?? []) as unknown as AdminMarket[]).map((m) => (
+          markets.map((m) => (
             <MarketAdminRow
               key={m.id}
               marketId={m.id}

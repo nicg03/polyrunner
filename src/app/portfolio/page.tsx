@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { createClient, getCurrentProfile } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
+import { query } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { formatCents, formatCredits, formatDateTime } from "@/lib/format";
 
@@ -15,6 +16,7 @@ interface PositionRow {
   market_id: string;
   shares: number;
   cost_basis: number;
+  price: number;
   outcome: { label: string } | null;
   market: {
     status: string;
@@ -39,41 +41,45 @@ export default async function PortfolioPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login?next=/portfolio");
 
-  const supabase = await createClient();
-  const [{ data: positionsData }, { data: tradesData }] = await Promise.all([
-    supabase
-      .from("positions")
-      .select(
-        "outcome_id, market_id, shares, cost_basis, outcome:outcomes(label), market:markets(status, winning_outcome_id, athlete:athletes(name), race:races(name))",
-      )
-      .eq("user_id", profile.id)
-      .gt("shares", 0),
-    supabase
-      .from("trades")
-      .select("id, side, shares, cost, created_at, market_id, outcome:outcomes(label), market:markets(athlete:athletes(name))")
-      .eq("user_id", profile.id)
-      .order("created_at", { ascending: false })
-      .limit(50),
+  const [positions, trades] = await Promise.all([
+    query<PositionRow>(
+      `select p.outcome_id, p.market_id, p.shares, p.cost_basis,
+              jsonb_build_object('label', o.label) as outcome,
+              jsonb_build_object(
+                'status', m.status,
+                'winning_outcome_id', m.winning_outcome_id,
+                'athlete', jsonb_build_object('name', a.name),
+                'race', jsonb_build_object('name', r.name)
+              ) as market,
+              op.price
+         from positions p
+         join outcomes o on o.id = p.outcome_id
+         join markets m on m.id = p.market_id
+         join athletes a on a.id = m.athlete_id
+         join races r on r.id = m.race_id
+         join outcome_prices op on op.outcome_id = p.outcome_id
+        where p.user_id = $1 and p.shares > 0
+        order by p.updated_at desc`,
+      [profile.id],
+    ),
+    query<TradeRow>(
+      `select t.id, t.side, t.shares, t.cost, t.created_at, t.market_id,
+              jsonb_build_object('label', o.label) as outcome,
+              jsonb_build_object('athlete', jsonb_build_object('name', a.name)) as market
+         from trades t
+         join outcomes o on o.id = t.outcome_id
+         join markets m on m.id = t.market_id
+         join athletes a on a.id = m.athlete_id
+        where t.user_id = $1
+        order by t.created_at desc limit 50`,
+      [profile.id],
+    ),
   ]);
-
-  const positions = (positionsData ?? []) as unknown as PositionRow[];
-  const trades = (tradesData ?? []) as unknown as TradeRow[];
-
-  const { data: priceRows } = positions.length
-    ? await supabase
-        .from("outcome_prices")
-        .select("outcome_id, price")
-        .in(
-          "outcome_id",
-          positions.map((p) => p.outcome_id),
-        )
-    : { data: [] as { outcome_id: string; price: number }[] };
-  const priceById = new Map((priceRows ?? []).map((r) => [r.outcome_id, Number(r.price)]));
 
   const rows = positions.map((p) => {
     const shares = Number(p.shares);
     const costBasis = Number(p.cost_basis);
-    const price = priceById.get(p.outcome_id) ?? 0;
+    const price = Number(p.price);
     const resolved = p.market?.status === "resolved";
     const won = resolved && p.market?.winning_outcome_id === p.outcome_id;
     const value = shares * price;

@@ -9,8 +9,8 @@ export default function LoginPage() {
       <div className="text-center">
         <h1 className="text-2xl font-semibold">Entra in PolyRunner</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Ti mandiamo un link magico via email. Alla prima registrazione ricevi
-          1000 crediti virtuali.
+          Scegli un nickname e una password. Alla registrazione ricevi 1000
+          crediti virtuali.
         </p>
       </div>
       <Suspense>

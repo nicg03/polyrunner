@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { MarketCard } from "@/components/market-card";
-import { RealtimeRefresher } from "@/components/realtime-refresher";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { SetupNotice } from "@/components/setup-notice";
 import { cn } from "@/lib/utils";
-import { getMarkets, getRaces } from "@/lib/queries";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getMarkets, getRaces, isUuid } from "@/lib/queries";
+import { isDatabaseConfigured } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +13,10 @@ export default async function HomePage({
 }: {
   searchParams: Promise<{ race?: string; status?: string }>;
 }) {
-  if (!isSupabaseConfigured) return <SetupNotice />;
+  if (!isDatabaseConfigured) return <SetupNotice />;
 
   const { race, status = "open" } = await searchParams;
-  const [allMarkets, races] = await Promise.all([getMarkets({ raceId: race }), getRaces()]);
+  const [allMarkets, races] = await Promise.all([getMarkets({ raceId: race && isUuid(race) ? race : undefined }), getRaces()]);
   const markets = allMarkets.filter((m) =>
     status === "resolved" ? m.status === "resolved" : m.status !== "resolved",
   );
@@ -39,7 +39,7 @@ export default async function HomePage({
 
   return (
     <div className="flex flex-col gap-6 py-6">
-      <RealtimeRefresher channel="home" subscriptions={[{ table: "markets" }]} />
+      <AutoRefresh intervalMs={15000} />
 
       <section className="rounded-2xl border bg-gradient-to-br from-primary/20 via-card to-card p-6">
         <h1 className="text-2xl font-semibold sm:text-3xl">Quanto ci metterà?</h1>

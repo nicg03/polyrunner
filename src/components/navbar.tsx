@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Footprints, Trophy, Wallet, Shield } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { getCurrentProfile } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
+import { logout } from "@/actions/auth";
 import { formatCredits } from "@/lib/format";
 import { Avatar } from "@/components/avatar";
 
@@ -15,19 +16,19 @@ export async function Navbar() {
           <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Footprints className="size-5" />
           </span>
-          <span className="text-lg">PolyRunner</span>
+          <span className="hidden text-lg sm:inline">PolyRunner</span>
         </Link>
 
-        <nav className="ml-4 hidden items-center gap-1 text-sm sm:flex">
-          <Link href="/" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+        <nav className="flex items-center gap-1 text-sm sm:ml-4">
+          <Link href="/" className={buttonVariants({ variant: "ghost", size: "sm", className: "hidden sm:inline-flex" })}>
             Mercati
           </Link>
           <Link href="/leaderboard" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            <Trophy /> Classifica
+            <Trophy /> <span className="hidden sm:inline">Classifica</span>
           </Link>
           {profile?.is_admin && (
             <Link href="/admin" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-              <Shield /> Admin
+              <Shield /> <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
         </nav>
@@ -45,10 +46,10 @@ export async function Navbar() {
                 </span>
               </Link>
               <Link href="/portfolio" className={buttonVariants({ variant: "outline", size: "sm" })}>
-                <Wallet /> Portfolio
+                <Wallet /> <span className="hidden sm:inline">Portfolio</span>
               </Link>
               <Avatar name={profile.username} url={profile.avatar_url} />
-              <form action="/auth/signout" method="post">
+              <form action={logout}>
                 <button className="text-xs text-muted-foreground hover:text-foreground">
                   Esci
                 </button>

@@ -1,16 +1,14 @@
 import { notFound } from "next/navigation";
 import { Calendar, MapPin, Ruler } from "lucide-react";
 import { MarketCard } from "@/components/market-card";
-import { RealtimeRefresher } from "@/components/realtime-refresher";
-import { getMarkets } from "@/lib/queries";
-import { createClient } from "@/lib/supabase/server";
+import { AutoRefresh } from "@/components/auto-refresh";
+import { getMarkets, getRace, isUuid } from "@/lib/queries";
 import { formatDateTime, formatVolume } from "@/lib/format";
-import type { Race } from "@/lib/types";
 
 export default async function RacePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: race } = await supabase.from("races").select("*").eq("id", id).maybeSingle<Race>();
+  if (!isUuid(id)) notFound();
+  const race = await getRace(id);
   if (!race) notFound();
 
   const markets = await getMarkets({ raceId: id });
@@ -18,10 +16,7 @@ export default async function RacePage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="flex flex-col gap-6 py-6">
-      <RealtimeRefresher
-        channel={`race-${id}`}
-        subscriptions={[{ table: "markets", filter: `race_id=eq.${id}` }]}
-      />
+      <AutoRefresh intervalMs={15000} />
       <section className="rounded-2xl border bg-card p-6">
         <h1 className="text-2xl font-semibold">{race.name}</h1>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">

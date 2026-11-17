@@ -1,29 +1,37 @@
-import { createClient } from "@/lib/supabase/server";
+import "server-only";
+import { query, queryOne } from "@/lib/db";
 import type { MarketWithRelations, Race } from "@/lib/types";
 
-const MARKET_SELECT = "*, race:races(*), athlete:athletes(*), outcomes(*)";
+const MARKET_SELECT = `
+  select m.*,
+         to_jsonb(r) as race,
+         to_jsonb(a) as athlete,
+         (select coalesce(jsonb_agg(o order by o.sort_order), '[]'::jsonb)
+            from outcomes o where o.market_id = m.id) as outcomes
+    from markets m
+    join races r on r.id = m.race_id
+    join athletes a on a.id = m.athlete_id
+`;
 
 export async function getMarkets(opts: { raceId?: string } = {}) {
-  const supabase = await createClient();
-  let query = supabase
-    .from("markets")
-    .select(MARKET_SELECT)
-    .order("closes_at", { ascending: true });
-  if (opts.raceId) query = query.eq("race_id", opts.raceId);
-
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return (data ?? []) as MarketWithRelations[];
+  return query<MarketWithRelations>(
+    `${MARKET_SELECT} where ($1::uuid is null or m.race_id = $1::uuid) order by m.closes_at nulls last`,
+    [opts.raceId ?? null],
+  );
 }
 
 export async function getMarket(id: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.from("markets").select(MARKET_SELECT).eq("id", id).maybeSingle();
-  return data as MarketWithRelations | null;
+  return queryOne<MarketWithRelations>(`${MARKET_SELECT} where m.id = $1`, [id]);
 }
 
 export async function getRaces() {
-  const supabase = await createClient();
-  const { data } = await supabase.from("races").select("*").order("starts_at");
-  return (data ?? []) as Race[];
+  return query<Race>("select * from races order by starts_at");
+}
+
+export async function getRace(id: string) {
+  return queryOne<Race>("select * from races where id = $1", [id]);
+}
+
+export function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }

@@ -1,8 +1,8 @@
 import { Trophy } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { SetupNotice } from "@/components/setup-notice";
-import { createClient, getCurrentProfile } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getCurrentProfile } from "@/lib/auth";
+import { isDatabaseConfigured, query } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { formatCredits } from "@/lib/format";
 import type { LeaderboardRow } from "@/lib/types";
@@ -14,14 +14,12 @@ const STARTING_BALANCE = 1000;
 const MEDALS = ["#f2c94c", "#c0c7d0", "#d08b4c"];
 
 export default async function LeaderboardPage() {
-  if (!isSupabaseConfigured) return <SetupNotice />;
+  if (!isDatabaseConfigured) return <SetupNotice />;
 
-  const supabase = await createClient();
-  const [profile, { data }] = await Promise.all([
+  const [profile, rows] = await Promise.all([
     getCurrentProfile(),
-    supabase.from("leaderboard").select("*").order("total_value", { ascending: false }).limit(100),
+    query<LeaderboardRow>("select * from leaderboard order by total_value desc limit 100"),
   ]);
-  const rows = (data ?? []) as LeaderboardRow[];
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 py-6">

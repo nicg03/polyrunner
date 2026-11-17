@@ -18,58 +18,48 @@ Nato per gioco: si usano solo **crediti virtuali**.
 ## Stack
 
 - [Next.js 15](https://nextjs.org) (App Router, Server Actions), Tailwind CSS, shadcn/ui, Recharts
-- [Supabase](https://supabase.com): Auth (magic link), Postgres con Row Level Security, Realtime
-- Deploy consigliato: [Vercel](https://vercel.com)
+- PostgreSQL via [`pg`](https://node-postgres.com), login con nickname e password (sessioni nel database)
+- Deploy su [Railway](https://railway.com) (servizio web + Postgres), configurato in `.railway/railway.ts`
 
-## Setup
+## Account e admin
 
-### 1. Supabase
+Ci si registra con nickname e password da `/login`. **Il primo utente registrato diventa admin**;
+per promuoverne altri:
 
-1. Crea un progetto su [supabase.com](https://supabase.com).
-2. Apri **SQL Editor** ed esegui in ordine:
-   - `supabase/migrations/0001_init.sql` (schema, funzioni di trading, permessi, realtime)
-   - `supabase/seed.sql` (opzionale: gare e atleti di esempio)
-3. In **Authentication > URL Configuration** imposta:
-   - Site URL: `http://localhost:3000` (poi l'URL di produzione)
-   - Redirect URLs: `http://localhost:3000/auth/callback` e `https://<tuo-dominio>/auth/callback`
-
-In alternativa, con la [Supabase CLI](https://supabase.com/docs/guides/cli):
-
-```bash
-supabase link --project-ref <ref>
-supabase db push
+```sql
+update users set is_admin = true where username = 'nickname';
 ```
 
-### 2. Variabili d'ambiente
+Da `/admin` si creano gare, atleti e mercati, si chiudono le giocate e si risolvono i mercati.
+
+## Sviluppo in locale
+
+Serve un Postgres raggiungibile (es. `brew install postgresql` oppure Docker).
 
 ```bash
-cp .env.example .env.local
-```
-
-e inserisci `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-(Project Settings > API).
-
-### 3. Avvio in locale
-
-```bash
+cp .env.example .env.local   # imposta DATABASE_URL
 npm install
+npm run db:migrate           # crea lo schema (e i dati demo se SEED_DEMO=true)
 npm run dev
 ```
 
-Apri [http://localhost:3000](http://localhost:3000), accedi con la tua email e poi diventa admin
-eseguendo nel SQL Editor:
+## Deploy su Railway
 
-```sql
-update profiles set is_admin = true where username = 'il-tuo-nickname';
-```
+Il progetto Railway `polyrunner` ha due servizi:
 
-Da `/admin` puoi creare gare, atleti e mercati, chiudere le giocate e risolvere i mercati.
+- **web**: collegato a questo repository, ogni push su `main` fa un nuovo deploy. Prima di ogni
+  deploy esegue `node scripts/migrate.mjs`, che applica le migration nuove in `db/migrations`.
+- **Postgres**: database gestito, raggiungibile solo dalla rete privata del progetto.
 
-### 4. Deploy su Vercel
+Variabili del servizio web (definite in `.railway/railway.ts`):
 
-1. Importa questo repository su [vercel.com/new](https://vercel.com/new).
-2. Aggiungi le due variabili `NEXT_PUBLIC_SUPABASE_*` nelle Environment Variables.
-3. Aggiungi l'URL di Vercel ai Redirect URLs di Supabase.
+| Variabile | Valore |
+| --- | --- |
+| `DATABASE_URL` | riferimento a `Postgres.DATABASE_URL` |
+| `SEED_DEMO` | `true`: carica gare e atleti di esempio se il database è vuoto |
+
+Per modificare l'infrastruttura: modifica `.railway/railway.ts`, poi `railway config plan` e
+`railway config apply`.
 
 ## Struttura
 
@@ -82,23 +72,25 @@ src/
     portfolio/             posizioni, P&L, storico
     leaderboard/           classifica
     admin/                 gestione gare, atleti, mercati e risoluzione
-    login/, auth/          magic link Supabase
-  actions/                 server actions (trade, admin)
+    login/                 registrazione e accesso
+  actions/                 server actions (auth, trade, admin)
   components/              UI (MarketCard, TradePanel, PriceChart, ...)
   lib/
+    db.ts                  pool Postgres
+    auth.ts                password (scrypt) e sessioni
     lmsr.ts                formule LMSR per l'anteprima lato client
     time.ts                parsing/formattazione tempi e generazione fasce
-    supabase/              client browser/server e middleware sessione
-supabase/
-  migrations/0001_init.sql
-  seed.sql
+db/
+  migrations/0001_init.sql schema e funzioni di trading
+  seed.sql                 dati di esempio
+scripts/migrate.mjs        runner delle migration
+.railway/railway.ts        infrastruttura Railway
 ```
 
 ## Note sul modello
 
-Le operazioni che toccano saldo e quote avvengono solo nelle funzioni Postgres
-`buy_shares`, `sell_shares` e `resolve_market` (`security definer`), così il client non può
-modificare saldi o prezzi direttamente.
+Saldo, quote e prezzi si modificano solo dentro le funzioni Postgres `buy_shares`,
+`sell_shares` e `resolve_market`, in una transazione con lock sul mercato.
 
 - Prezzo: `p_i = exp(q_i / b) / Σ exp(q_j / b)`
 - Quote ottenute spendendo `A` crediti: `x = b · ln(1 + (exp(A / b) − 1) / p_i)`
