@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Footprints, Trophy, Wallet, Shield } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { getCurrentProfile } from "@/lib/auth";
 import { logout } from "@/actions/auth";
 import { formatCredits } from "@/lib/format";
@@ -20,7 +21,7 @@ export async function Navbar() {
         </Link>
 
         <nav className="flex items-center gap-1 text-sm sm:ml-4">
-          <Link href="/" className={buttonVariants({ variant: "ghost", size: "sm", className: "hidden sm:inline-flex" })}>
+          <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden sm:inline-flex")}>
             Mercati
           </Link>
           <Link href="/leaderboard" className={buttonVariants({ variant: "ghost", size: "sm" })}>
