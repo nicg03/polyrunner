@@ -6,9 +6,16 @@ import { getCurrentProfile } from "@/lib/auth";
 import { logout } from "@/actions/auth";
 import { formatCredits } from "@/lib/format";
 import { Avatar } from "@/components/avatar";
+import { StravaButton } from "@/components/strava-card";
+import { queryOne } from "@/lib/db";
+import { isStravaConfigured } from "@/lib/strava";
 
 export async function Navbar() {
   const profile = await getCurrentProfile();
+  const needsStrava =
+    profile !== null &&
+    (await isStravaConfigured()) &&
+    !(await queryOne("select 1 from strava_accounts where user_id = $1", [profile.id]));
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
@@ -37,6 +44,12 @@ export async function Navbar() {
         <div className="ml-auto flex items-center gap-3">
           {profile ? (
             <>
+              {needsStrava && (
+                <StravaButton href="/api/strava/connect?next=/portfolio" className="h-8 px-3">
+                  <span className="hidden sm:inline">Connect Strava</span>
+                  <span className="sm:hidden">Strava</span>
+                </StravaButton>
+              )}
               <Link href="/create" className={buttonVariants({ size: "sm" })}>
                 <Plus /> <span className="hidden sm:inline">Create bet</span>
               </Link>

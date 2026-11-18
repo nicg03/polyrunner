@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
 import { queryOne } from "@/lib/db";
+import { isStravaConfigured } from "@/lib/strava";
 import type { ActionResult } from "@/lib/types";
 
 function safeNext(formData: FormData) {
@@ -35,6 +36,10 @@ export async function register(_prev: ActionResult, formData: FormData): Promise
     [username, email, await hashPassword(password)],
   );
   await createSession(user!.id);
+  // Right after signing up, offer to link Strava (the user can skip it from the Strava screen).
+  if (await isStravaConfigured()) {
+    redirect(`/api/strava/connect?next=${encodeURIComponent(safeNext(formData))}`);
+  }
   redirect(safeNext(formData));
 }
 
