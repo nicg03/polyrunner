@@ -14,6 +14,15 @@ Each race can have two kinds of markets:
 
 Every outcome trades between 0 and 100 cents, and the price is its implied probability.
 
+Markets are grouped in two sections:
+
+- **Friends**: athletes who are PolyRunner users. Connecting Strava adds you automatically, and
+  then **any logged-in user** can create a bet on you from `/create` (finish time or Yes/No, on an
+  existing race or a new one). Results come from your Strava activity, confirmed by an admin.
+  Each user can create up to 10 bets a day.
+- **Pros**: athletes created by the admin with the "Pro" section (elite runners, race winners...),
+  resolved by hand with the official result.
+
 - Every user starts with **1,000 credits**. Buy shares of the outcome you believe in: if it wins,
   each share pays 1 credit, otherwise 0. You can sell back any time before trading closes.
 - Prices come from an automated **LMSR** market maker (Logarithmic Market Scoring Rule): there is
@@ -100,7 +109,8 @@ To change the infrastructure: edit `.railway/railway.ts`, then run `railway conf
 ```
 src/
   app/
-    page.tsx               market grid with race / bet type filters
+    page.tsx               market grid: All / Friends / Pros, race and bet type filters
+    create/                create a bet on a Strava-connected friend
     races/[id]/            all markets for a race
     markets/[id]/          chart, outcomes, Buy/Sell panel, activity
     portfolio/             positions, P&L, history
@@ -119,6 +129,7 @@ db/
     0001_init.sql          schema and trading functions
     0002_custom_markets.sql Yes/No markets and outcome-based resolution
     0003_strava.sql        Strava accounts and proposed results
+    0004_friends_pros.sql  athlete sections and user-created markets
   seed.sql                 demo data
 scripts/migrate.mjs        migration runner
 .railway/railway.ts        Railway infrastructure

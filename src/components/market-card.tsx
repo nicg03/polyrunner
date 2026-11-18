@@ -34,7 +34,12 @@ export function MarketCard({ market }: { market: MarketWithRelations }) {
         )}
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 font-medium leading-snug">{marketTitle(market, market.athlete)}</p>
-          <p className="truncate text-xs text-muted-foreground">{market.race.name}</p>
+          <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+            {market.athlete?.category === "pro" && (
+              <span className="rounded bg-amber-400/15 px-1 text-[10px] font-semibold text-amber-400">PRO</span>
+            )}
+            {market.race.name}
+          </p>
         </div>
         {isCustom && !resolved && <YesGauge price={outcomes[0]?.price ?? 0} />}
       </div>

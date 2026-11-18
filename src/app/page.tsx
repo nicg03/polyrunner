@@ -1,26 +1,36 @@
 import Link from "next/link";
+import { LayoutGrid, Plus, Star, Users } from "lucide-react";
 import { MarketCard } from "@/components/market-card";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { Avatar } from "@/components/avatar";
 import { SetupNotice } from "@/components/setup-notice";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getMarkets, getRaces, isUuid } from "@/lib/queries";
+import { getMarkets, getRaces, getStravaFriends, isUuid } from "@/lib/queries";
 import { isDatabaseConfigured } from "@/lib/db";
+import type { Athlete } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ race?: string; status?: string; type?: string }>;
+  searchParams: Promise<{ race?: string; status?: string; type?: string; section?: string }>;
 }) {
   if (!isDatabaseConfigured) return <SetupNotice />;
 
-  const { race, status = "open", type } = await searchParams;
-  const [allMarkets, races] = await Promise.all([getMarkets({ raceId: race && isUuid(race) ? race : undefined }), getRaces()]);
+  const { race, status = "open", type, section } = await searchParams;
+  const [allMarkets, races, friends] = await Promise.all([
+    getMarkets({ raceId: race && isUuid(race) ? race : undefined }),
+    getRaces(),
+    getStravaFriends(),
+  ]);
+  const category = section === "friends" ? "friend" : section === "pros" ? "pro" : null;
   const markets = allMarkets.filter(
     (m) =>
       (status === "resolved" ? m.status === "resolved" : m.status !== "resolved") &&
-      (!type || m.kind === type),
+      (!type || m.kind === type) &&
+      (!category || m.athlete?.category === category),
   );
 
   const chip = (active: boolean) =>
@@ -31,8 +41,9 @@ export default async function HomePage({
         : "text-muted-foreground hover:bg-muted hover:text-foreground",
     );
 
-  const href = (params: { race?: string; status?: string; type?: string }) => {
+  const href = (params: { race?: string; status?: string; type?: string; section?: string }) => {
     const sp = new URLSearchParams();
+    if (params.section) sp.set("section", params.section);
     if (params.race) sp.set("race", params.race);
     if (params.status && params.status !== "open") sp.set("status", params.status);
     if (params.type) sp.set("type", params.type);
@@ -52,39 +63,67 @@ export default async function HomePage({
         </p>
       </section>
 
+      <nav className="flex gap-1 border-b">
+        {SECTIONS.map((s) => (
+          <Link
+            key={s.label}
+            href={href({ section: s.id, race, status, type })}
+            className={cn(
+              "-mb-px flex items-center gap-2 border-b-2 px-3 pb-2.5 text-sm font-medium transition-colors",
+              section === s.id || (!s.id && !category)
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <s.icon className="size-4" /> {s.label}
+          </Link>
+        ))}
+      </nav>
+
+      {section === "friends" && <FriendsStrip friends={friends} />}
+
       <div className="flex flex-wrap items-center gap-2">
-        <Link href={href({ status, type })} className={chip(!race)}>
+        <Link href={href({ section, status, type })} className={chip(!race)}>
           All races
         </Link>
         {races.map((r) => (
-          <Link key={r.id} href={href({ race: r.id, status, type })} className={chip(race === r.id)}>
+          <Link key={r.id} href={href({ section, race: r.id, status, type })} className={chip(race === r.id)}>
             {r.name}
           </Link>
         ))}
       </div>
 
       <div className="-mt-3 flex flex-wrap items-center gap-2">
-        <Link href={href({ race, status })} className={chip(!type)}>
+        <Link href={href({ section, race, status })} className={chip(!type)}>
           All bets
         </Link>
-        <Link href={href({ race, status, type: "time" })} className={chip(type === "time")}>
+        <Link href={href({ section, race, status, type: "time" })} className={chip(type === "time")}>
           Finish times
         </Link>
-        <Link href={href({ race, status, type: "custom" })} className={chip(type === "custom")}>
+        <Link href={href({ section, race, status, type: "custom" })} className={chip(type === "custom")}>
           Yes / No
         </Link>
         <div className="ml-auto flex gap-2">
-          <Link href={href({ race, type, status: "open" })} className={chip(status !== "resolved")}>
+          <Link href={href({ section, race, type, status: "open" })} className={chip(status !== "resolved")}>
             Active
           </Link>
-          <Link href={href({ race, type, status: "resolved" })} className={chip(status === "resolved")}>
+          <Link
+            href={href({ section, race, type, status: "resolved" })}
+            className={chip(status === "resolved")}
+          >
             Resolved
           </Link>
         </div>
       </div>
 
       {markets.length === 0 ? (
-        <p className="py-16 text-center text-muted-foreground">No markets here yet.</p>
+        <p className="py-16 text-center text-muted-foreground">
+          {category === "pro"
+            ? "No pro markets yet."
+            : category === "friend"
+              ? "No bets on friends yet. Create the first one!"
+              : "No markets here yet."}
+        </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {markets.map((m) => (
@@ -93,5 +132,40 @@ export default async function HomePage({
         </div>
       )}
     </div>
+  );
+}
+
+const SECTIONS = [
+  { id: undefined, label: "All markets", icon: LayoutGrid },
+  { id: "friends", label: "Friends", icon: Users },
+  { id: "pros", label: "Pros", icon: Star },
+];
+
+function FriendsStrip({ friends }: { friends: Athlete[] }) {
+  return (
+    <section className="flex flex-wrap items-center gap-4 rounded-xl border bg-card p-4">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+        {friends.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No friends on Strava yet. Connect yours from the portfolio page to get bets on you.
+          </p>
+        ) : (
+          friends.map((f) => (
+            <Link
+              key={f.id}
+              href={`/create?athlete=${f.id}`}
+              title={`Create a bet on ${f.name}`}
+              className="flex flex-col items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Avatar name={f.name} url={f.avatar_url} size={40} />
+              <span className="max-w-16 truncate">{f.name}</span>
+            </Link>
+          ))
+        )}
+      </div>
+      <Link href="/create" className={buttonVariants()}>
+        <Plus /> Create a bet
+      </Link>
+    </section>
   );
 }

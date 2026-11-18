@@ -53,9 +53,11 @@ export async function createAthlete(_prev: ActionResult, formData: FormData): Pr
     const pb = pbRaw ? parseTime(pbRaw) : null;
     if (pbRaw && pb === null) throw new Error("Invalid personal best (use mm:ss or h:mm:ss)");
 
+    const category = str(formData, "category") === "friend" ? "friend" : "pro";
+
     await query(
-      "insert into athletes (name, personal_best_seconds, bio, avatar_url) values ($1, $2, $3, $4)",
-      [name, pb, str(formData, "bio") || null, str(formData, "avatar_url") || null],
+      "insert into athletes (name, personal_best_seconds, bio, avatar_url, category) values ($1, $2, $3, $4, $5)",
+      [name, pb, str(formData, "bio") || null, str(formData, "avatar_url") || null, category],
     );
     return `Athlete "${name}" added`;
   });

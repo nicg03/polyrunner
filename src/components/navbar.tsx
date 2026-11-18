@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Footprints, Trophy, Wallet, Shield } from "lucide-react";
+import { Footprints, Plus, Trophy, Wallet, Shield } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getCurrentProfile } from "@/lib/auth";
@@ -37,6 +37,9 @@ export async function Navbar() {
         <div className="ml-auto flex items-center gap-3">
           {profile ? (
             <>
+              <Link href="/create" className={buttonVariants({ size: "sm" })}>
+                <Plus /> <span className="hidden sm:inline">Create bet</span>
+              </Link>
               <Link
                 href="/portfolio"
                 className="flex flex-col items-end leading-tight hover:opacity-80"

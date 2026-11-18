@@ -1,6 +1,6 @@
 import "server-only";
 import { query, queryOne } from "@/lib/db";
-import type { MarketWithRelations, Race } from "@/lib/types";
+import type { Athlete, MarketWithRelations, Race } from "@/lib/types";
 
 const MARKET_SELECT = `
   select m.*,
@@ -22,6 +22,16 @@ export async function getMarkets(opts: { raceId?: string } = {}) {
 
 export async function getMarket(id: string) {
   return queryOne<MarketWithRelations>(`${MARKET_SELECT} where m.id = $1`, [id]);
+}
+
+/** Friends you can create bets on: athletes whose user connected Strava, so results can be verified. */
+export async function getStravaFriends() {
+  return query<Athlete>(
+    `select a.* from athletes a
+       join strava_accounts s on s.user_id = a.user_id
+      where a.category = 'friend'
+      order by a.name`,
+  );
 }
 
 export async function getRaces() {

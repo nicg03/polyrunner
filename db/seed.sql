@@ -11,6 +11,7 @@ declare
   v_luca uuid;
   v_sara uuid;
   v_nicco uuid;
+  v_winner uuid;
 begin
   insert into races (name, starts_at, distance_km, location)
   values ('Milano Marathon 2027', '2027-04-11 09:00:00+02', 42.195, 'Milan')
@@ -69,6 +70,16 @@ begin
     {"label": "44:00 - 46:00", "min_seconds": 2640, "max_seconds": 2760, "prob": 0.20},
     {"label": "> 46:00", "min_seconds": 2760, "max_seconds": null, "prob": 0.10}
   ]'::jsonb);
+
+  insert into athletes (name, bio, category)
+  values ('Men''s winner', 'Whoever wins the men''s race', 'pro') returning id into v_winner;
+
+  perform create_market(v_milano, v_winner, 100, null, '[
+    {"label": "< 2:05:00", "min_seconds": null, "max_seconds": 7500, "prob": 0.25},
+    {"label": "2:05:00 - 2:07:00", "min_seconds": 7500, "max_seconds": 7620, "prob": 0.45},
+    {"label": "> 2:07:00", "min_seconds": 7620, "max_seconds": null, "prob": 0.30}
+  ]'::jsonb);
+  perform create_custom_market(v_milano, v_winner, 'Will the course record fall?', 100, null, 0.2);
 
   perform create_custom_market(v_milano, v_luca, 'Will Luca stop to walk at any point?', 100, null, 0.6);
   perform create_custom_market(v_milano, v_marco, 'Will Marco finish ahead of Giulia?', 100, null, 0.3);

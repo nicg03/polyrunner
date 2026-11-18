@@ -37,7 +37,7 @@ interface TokenResponse {
   access_token: string;
   refresh_token: string;
   expires_at: number;
-  athlete?: { id: number; firstname?: string; lastname?: string };
+  athlete?: { id: number; firstname?: string; lastname?: string; profile_medium?: string };
 }
 
 interface AccountRow {
@@ -108,6 +108,15 @@ export async function connectAccount(userId: string, code: string, scope: string
        expires_at = excluded.expires_at,
        scope = excluded.scope`,
     [userId, token.athlete.id, name || null, token.access_token, token.refresh_token, token.expires_at, scope],
+  );
+
+  // Connecting Strava puts you in the Friends section. Strava's placeholder avatars are relative paths.
+  const avatar = token.athlete.profile_medium?.startsWith("http") ? token.athlete.profile_medium : null;
+  await query(
+    `insert into athletes (name, user_id, avatar_url, category)
+     select coalesce($2, u.username), u.id, $3, 'friend' from users u
+      where u.id = $1 and not exists (select 1 from athletes a where a.user_id = $1)`,
+    [userId, name || null, avatar],
   );
 }
 

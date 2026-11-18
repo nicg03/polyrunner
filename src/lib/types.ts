@@ -21,12 +21,16 @@ export interface Race {
   status: RaceStatus;
 }
 
+export type AthleteCategory = "friend" | "pro";
+
 export interface Athlete {
   id: string;
   name: string;
   avatar_url: string | null;
   personal_best_seconds: number | null;
   bio: string | null;
+  category: AthleteCategory;
+  user_id: string | null;
 }
 
 export interface Outcome {
@@ -51,6 +55,7 @@ export interface Market {
   actual_time_seconds: number | null;
   winning_outcome_id: string | null;
   strava_activity_id: number | null;
+  created_by: string | null;
   volume: number;
   created_at: string;
 }

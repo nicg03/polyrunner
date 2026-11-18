@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ActionForm } from "@/components/action-form";
+import { LocalDateTime } from "@/components/local-date-time";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,23 +34,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <Label>{label}</Label>
       {children}
     </div>
-  );
-}
-
-// datetime-local is in the browser's time zone: convert to ISO before sending it to the server.
-function LocalDateTime({ name, required }: { name: string; required?: boolean }) {
-  const [local, setLocal] = useState("");
-  const iso = local ? new Date(local).toISOString() : "";
-  return (
-    <>
-      <Input
-        type="datetime-local"
-        required={required}
-        value={local}
-        onChange={(e) => setLocal(e.target.value)}
-      />
-      <input type="hidden" name={name} value={iso} />
-    </>
   );
 }
 
@@ -116,12 +100,18 @@ export function AthleteForm() {
     <ActionForm action={createAthlete} className="flex flex-col gap-3">
       {(pending) => (
         <>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Field label="Name">
               <Input name="name" required placeholder="Marco" />
             </Field>
             <Field label="Personal best">
               <Input name="personal_best" placeholder="3:29:45" />
+            </Field>
+            <Field label="Section">
+              <select name="category" className={selectClass} defaultValue="pro">
+                <option value="pro">Pro</option>
+                <option value="friend">Friend</option>
+              </select>
             </Field>
           </div>
           <Field label="Bio">
