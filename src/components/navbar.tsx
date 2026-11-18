@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Footprints, Plus, Trophy, Wallet, Shield } from "lucide-react";
+import { Footprints, Plus, Trophy, UserPlus, Wallet, Shield } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getCurrentProfile } from "@/lib/auth";
@@ -24,6 +24,11 @@ export async function Navbar() {
           <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden sm:inline-flex")}>
             Markets
           </Link>
+          {profile && (
+            <Link href="/friends" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              <UserPlus /> <span className="hidden sm:inline">Friends</span>
+            </Link>
+          )}
           <Link href="/leaderboard" className={buttonVariants({ variant: "ghost", size: "sm" })}>
             <Trophy /> <span className="hidden sm:inline">Leaderboard</span>
           </Link>

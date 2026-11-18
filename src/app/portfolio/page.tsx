@@ -125,8 +125,11 @@ export default async function PortfolioPage() {
               <>
                 <p className="font-medium">You&apos;re in the Friends section as {runner.name}</p>
                 <p className="text-muted-foreground">
-                  Anyone can bet on your races. After each race, submit your finish time with a proof:
-                  Strava link, photo of your watch or official results.
+                  Friends who add you can bet on your races. After each race, submit your finish time
+                  with a proof: Strava link, photo of your watch or official results.{" "}
+                  <Link href="/friends" className="text-primary hover:underline">
+                    Manage friends
+                  </Link>
                 </p>
               </>
             ) : (

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutGrid, Plus, Star, Users } from "lucide-react";
+import { LayoutGrid, Plus, Star, UserPlus, Users } from "lucide-react";
 import { MarketCard } from "@/components/market-card";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { Avatar } from "@/components/avatar";
@@ -22,12 +22,13 @@ export default async function HomePage({
   if (!isDatabaseConfigured) return <SetupNotice />;
 
   const { race, status = "open", type, section } = await searchParams;
-  const [allMarkets, races, friends, profile] = await Promise.all([
+  const profile = await getCurrentProfile();
+  const [allMarkets, races, friends] = await Promise.all([
     getMarkets({ raceId: race && isUuid(race) ? race : undefined }),
     getRaces(),
-    getFriends(),
-    getCurrentProfile(),
+    getFriends(profile?.id ?? null),
   ]);
+  const friendIds = new Set(friends.map((f) => f.id));
   const invite = !profile
     ? ("signup" as const)
     : friends.some((f) => f.user_id === profile.id)
@@ -38,7 +39,8 @@ export default async function HomePage({
     (m) =>
       (status === "resolved" ? m.status === "resolved" : m.status !== "resolved") &&
       (!type || m.kind === type) &&
-      (!category || m.athlete?.category === category),
+      (!category || m.athlete?.category === category) &&
+      (category !== "friend" || friendIds.has(m.athlete!.id)),
   );
 
   const chip = (active: boolean) =>
@@ -129,7 +131,9 @@ export default async function HomePage({
           {category === "pro"
             ? "No pro markets yet."
             : category === "friend"
-              ? "No bets on friends yet. Create the first one!"
+              ? profile
+                ? "No bets on your friends yet. Add friends or create the first bet!"
+                : "No bets on friends yet. Create the first one!"
               : "No markets here yet."}
         </p>
       ) : (
@@ -155,7 +159,9 @@ function FriendsStrip({ friends, invite }: { friends: Athlete[]; invite: "signup
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
         {friends.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No runners yet. Be the first: join as a runner and your friends can bet on your races.
+            {invite === "signup"
+              ? "Log in to see your friends and bet on their races."
+              : "No friends yet. Find the runners you know and add them."}
           </p>
         ) : (
           friends.map((f) => (
@@ -178,6 +184,11 @@ function FriendsStrip({ friends, invite }: { friends: Athlete[]; invite: "signup
       )}
       {invite === "join" && <JoinRunnerButton variant="outline" />}
       {invite !== "signup" && (
+        <Link href="/friends" className={buttonVariants({ variant: "outline" })}>
+          <UserPlus /> Find friends
+        </Link>
+      )}
+      {invite !== "signup" && friends.length > 0 && (
         <Link href="/create" className={buttonVariants()}>
           <Plus /> Create a bet
         </Link>

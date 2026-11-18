@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { UserPlus } from "lucide-react";
 import { JoinRunnerButton } from "@/components/join-runner-button";
+import { buttonVariants } from "@/components/ui/button";
 import { getCurrentProfile } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { getFriends } from "@/lib/queries";
@@ -18,10 +21,11 @@ export default async function CreatePage({
 
   const { athlete } = await searchParams;
   const [friends, races] = await Promise.all([
-    getFriends(),
+    getFriends(profile.id),
     query<Race>("select * from races where starts_at > now() order by starts_at"),
   ]);
   const joined = friends.some((f) => f.user_id === profile.id);
+  const following = friends.filter((f) => f.user_id !== profile.id);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-6">
@@ -35,14 +39,31 @@ export default async function CreatePage({
       <section className="rounded-xl border bg-card p-5">
         {friends.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center text-sm">
-            <p className="font-medium">No runners yet</p>
+            <p className="font-medium">No friends yet</p>
             <p className="max-w-sm text-muted-foreground">
-              Join as a runner so friends can bet on your races, and invite your running buddies.
+              Find runners by name or username, add them as friends, then create a bet. You can also
+              join as a runner so others can bet on you.
             </p>
-            {!joined && <JoinRunnerButton />}
+            <div className="flex flex-wrap justify-center gap-2">
+              <Link href="/friends" className={buttonVariants()}>
+                <UserPlus /> Find friends
+              </Link>
+              {!joined && <JoinRunnerButton variant="outline" />}
+            </div>
           </div>
         ) : (
-          <CreateBetForm friends={friends} races={races} initialAthleteId={athlete} />
+          <>
+            {following.length === 0 && (
+              <p className="mb-4 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">
+                You&apos;re only betting on yourself for now.{" "}
+                <Link href="/friends" className="font-medium text-primary hover:underline">
+                  Find friends
+                </Link>{" "}
+                to open markets on their races.
+              </p>
+            )}
+            <CreateBetForm friends={friends} races={races} initialAthleteId={athlete} />
+          </>
         )}
       </section>
     </div>

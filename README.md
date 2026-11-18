@@ -17,9 +17,9 @@ Every outcome trades between 0 and 100 cents, and the price is its implied proba
 Markets are grouped in two sections:
 
 - **Friends**: athletes who are PolyRunner users. Click **"Join as a runner"** (Friends section or
-  portfolio) or connect Strava, and then **any logged-in user** can create a bet on you from
-  `/create` (finish time or Yes/No, on an existing race or a new one). Each user can create up to
-  10 bets a day.
+  portfolio) or connect Strava to appear in search. Other users find you on `/friends` by name or
+  username, add you, and then create a bet from `/create`. Each user only sees the people they
+  added; each can create up to 10 bets a day.
 - **Pros**: athletes created by the admin with the "Pro" section (elite runners, race winners...),
   resolved by hand with the official result.
 

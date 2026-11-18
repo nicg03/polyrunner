@@ -1,0 +1,128 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Search } from "lucide-react";
+import { Avatar } from "@/components/avatar";
+import { JoinRunnerButton } from "@/components/join-runner-button";
+import { buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getCurrentProfile } from "@/lib/auth";
+import { queryOne } from "@/lib/db";
+import { getFriends, searchRunners, type RunnerResult } from "@/lib/queries";
+import type { Athlete } from "@/lib/types";
+import { CopyInviteLink, FriendButton } from "./friend-buttons";
+
+export const metadata = { title: "Friends · PolyRunner" };
+
+export default async function FriendsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const profile = await getCurrentProfile();
+  const { q = "" } = await searchParams;
+  const search = q.trim().slice(0, 50);
+  if (!profile) {
+    const next = search ? `/friends?q=${encodeURIComponent(search)}` : "/friends";
+    redirect(`/login?next=${encodeURIComponent(next)}`);
+  }
+
+  const [friends, results, me] = await Promise.all([
+    getFriends(profile.id),
+    searchRunners(search, profile.id),
+    queryOne<{ id: string }>("select id from athletes where user_id = $1", [profile.id]),
+  ]);
+  const following = friends.filter((f) => f.user_id !== profile.id);
+
+  return (
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Friends</h1>
+        <p className="text-sm text-muted-foreground">
+          Search runners by name or username and add them. Only people you add show up in your
+          Friends section and when you create a bet.
+        </p>
+      </div>
+
+      <section className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4 text-sm">
+        <p className="min-w-0 flex-1 text-muted-foreground">
+          {me
+            ? "Send your link to your running buddies so they can find you and add you."
+            : "Join as a runner so your friends can find you and bet on your races."}
+        </p>
+        {me ? <CopyInviteLink path={`/friends?q=${encodeURIComponent(profile.username)}`} /> : <JoinRunnerButton />}
+      </section>
+
+      <section className="flex flex-col rounded-xl border bg-card">
+        <form className="flex gap-2 border-b p-3" action="/friends">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              name="q"
+              defaultValue={search}
+              autoFocus={!search}
+              placeholder="Search by name or username"
+              className="h-9 pl-8"
+            />
+          </div>
+          <button type="submit" className={buttonVariants({ size: "lg" })}>
+            Search
+          </button>
+        </form>
+        {!search ? (
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+            Type a name or username to find runners. Or share your link above so they find you.
+          </p>
+        ) : results.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+            No runners found for &ldquo;{search}&rdquo;. Ask them to join as a runner, then try again.
+          </p>
+        ) : (
+          <>
+            <p className="px-4 pt-3 text-xs text-muted-foreground">
+              {results.length} {results.length === 1 ? "result" : "results"} for &ldquo;{search}&rdquo;
+            </p>
+            {results.map((r) => (
+              <RunnerRow key={r.id} runner={r} />
+            ))}
+          </>
+        )}
+      </section>
+
+      <section className="flex flex-col rounded-xl border bg-card">
+        <h2 className="border-b px-4 py-3 font-medium">Your friends ({following.length})</h2>
+        {following.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+            You haven&apos;t added anyone yet. Search for a runner above.
+          </p>
+        ) : (
+          following.map((f) => <FriendRow key={f.id} friend={f} />)
+        )}
+      </section>
+    </div>
+  );
+}
+
+function RunnerRow({ runner }: { runner: RunnerResult }) {
+  return (
+    <div className="flex items-center gap-3 border-b px-4 py-2.5 last:border-b-0">
+      <Avatar name={runner.name} url={runner.avatar_url} size={36} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium">{runner.name}</p>
+        <p className="truncate text-xs text-muted-foreground">
+          {runner.username && runner.username !== runner.name ? `@${runner.username} · ` : ""}
+          {runner.followers} {runner.followers === 1 ? "friend" : "friends"}
+        </p>
+      </div>
+      <FriendButton athleteId={runner.id} following={runner.following} />
+    </div>
+  );
+}
+
+function FriendRow({ friend }: { friend: Athlete }) {
+  return (
+    <div className="flex items-center gap-3 border-b px-4 py-2.5 last:border-b-0">
+      <Avatar name={friend.name} url={friend.avatar_url} size={36} />
+      <p className="min-w-0 flex-1 truncate font-medium">{friend.name}</p>
+      <Link href={`/create?athlete=${friend.id}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+        Create a bet
+      </Link>
+      <FriendButton athleteId={friend.id} following />
+    </div>
+  );
+}

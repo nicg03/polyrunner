@@ -24,9 +24,44 @@ export async function getMarket(id: string) {
   return queryOne<MarketWithRelations>(`${MARKET_SELECT} where m.id = $1`, [id]);
 }
 
-/** Friends you can create bets on; their results are verified from a submitted proof. */
-export async function getFriends() {
-  return query<Athlete>("select * from athletes where category = 'friend' order by name");
+/** The runners a user follows, plus their own runner profile. Empty when logged out. */
+export async function getFriends(userId: string | null) {
+  if (!userId) return [];
+  return query<Athlete>(
+    `select a.* from athletes a
+      where a.category = 'friend'
+        and (a.user_id = $1
+             or exists (select 1 from follows f where f.user_id = $1 and f.athlete_id = a.id))
+      order by a.user_id = $1 desc, a.name`,
+    [userId],
+  );
+}
+
+export interface RunnerResult extends Athlete {
+  username: string | null;
+  following: boolean;
+  followers: number;
+}
+
+/** Friend runners matching a name or username. Empty search returns no rows: type to find people. */
+export async function searchRunners(search: string, userId: string) {
+  const q = search.trim();
+  if (!q) return [];
+  const pattern = `%${q.replace(/[\\%_]/g, "\\$&")}%`;
+  return query<RunnerResult>(
+    `select a.*, u.username,
+            exists (select 1 from follows f where f.user_id = $2 and f.athlete_id = a.id) as following,
+            (select count(*)::int from follows f where f.athlete_id = a.id) as followers
+       from athletes a
+       left join users u on u.id = a.user_id
+      where a.category = 'friend' and a.user_id is distinct from $2
+        and (a.name ilike $1 or u.username ilike $1)
+      order by
+        case when lower(u.username) = lower($3) or lower(a.name) = lower($3) then 0 else 1 end,
+        followers desc, a.name
+      limit 30`,
+    [pattern, userId, q],
+  );
 }
 
 export async function getRaces() {

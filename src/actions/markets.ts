@@ -46,10 +46,13 @@ export async function createFriendBet(_prev: ActionResult, formData: FormData): 
   let marketId: string;
   try {
     const athlete = await queryOne<{ id: string }>(
-      "select id from athletes where id = $1 and category = 'friend'",
-      [str(formData, "athlete_id")],
+      `select a.id from athletes a
+        where a.id = $1 and a.category = 'friend'
+          and (a.user_id = $2
+               or exists (select 1 from follows f where f.user_id = $2 and f.athlete_id = a.id))`,
+      [str(formData, "athlete_id"), profile.id],
     );
-    if (!athlete) throw new Error("Pick a friend");
+    if (!athlete) throw new Error("Pick one of your friends");
 
     const [{ count }] = await query<{ count: number }>(
       "select count(*)::int as count from markets where created_by = $1 and created_at > now() - interval '1 day'",
