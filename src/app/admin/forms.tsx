@@ -7,17 +7,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  acceptStravaResult,
+  checkStrava,
   closeMarket,
   createAthlete,
   createCustomMarket,
   createMarket,
   createRace,
+  dismissStravaResult,
+  linkAthleteUser,
   reopenMarket,
   resolveMarket,
   resolveMarketOutcome,
 } from "@/actions/admin";
-import { bucketsFromThresholds, parseTime } from "@/lib/time";
-import type { Athlete, MarketKind, Race } from "@/lib/types";
+import { bucketsFromThresholds, formatTime, parseTime } from "@/lib/time";
+import type { ActionResult, Athlete, MarketKind, Race, StravaResult } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-input/30 px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -250,6 +255,105 @@ export function CustomMarketForm({ races, athletes }: { races: Race[]; athletes:
   );
 }
 
+export interface StravaUser {
+  id: string;
+  username: string;
+  display_name: string | null;
+}
+
+export function StravaLinkRow({
+  athlete,
+  users,
+}: {
+  athlete: Athlete & { user_id: string | null };
+  users: StravaUser[];
+}) {
+  const linkedElsewhere = athlete.user_id && !users.some((u) => u.id === athlete.user_id);
+  return (
+    <ActionForm
+      action={linkAthleteUser}
+      resetOnSuccess={false}
+      className="flex flex-wrap items-center gap-3 border-b px-4 py-2.5 last:border-b-0"
+    >
+      {(pending) => (
+        <>
+          <input type="hidden" name="athlete_id" value={athlete.id} />
+          <span className="min-w-24 flex-1 text-sm font-medium">{athlete.name}</span>
+          <select
+            name="user_id"
+            defaultValue={athlete.user_id ?? ""}
+            className={cn(selectClass, "w-56")}
+          >
+            <option value="">Not linked</option>
+            {linkedElsewhere && <option value={athlete.user_id!}>User without Strava</option>}
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.username}
+                {u.display_name ? ` (${u.display_name})` : ""}
+              </option>
+            ))}
+          </select>
+          <Button type="submit" size="sm" variant="outline" disabled={pending}>
+            Save
+          </Button>
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+function StravaResultRow({
+  result,
+  onAction,
+  pending,
+}: {
+  result: StravaResult;
+  onAction: (fn: () => Promise<ActionResult>) => void;
+  pending: boolean;
+}) {
+  return (
+    <div className="flex w-full flex-wrap items-center gap-3 rounded-lg border border-[#fc5200]/40 bg-[#fc5200]/10 px-3 py-2 text-sm">
+      <div className="min-w-0 flex-1">
+        <p>
+          <span className="font-semibold">Strava: {formatTime(result.elapsed_seconds)}</span>{" "}
+          <span className="text-muted-foreground">
+            elapsed · {(Number(result.distance_m) / 1000).toFixed(2)} km
+            {result.moving_seconds ? ` · moving ${formatTime(result.moving_seconds)}` : ""}
+          </span>
+        </p>
+        <a
+          href={`https://www.strava.com/activities/${result.activity_id}`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs font-medium text-[#fc5200] hover:underline"
+        >
+          {result.activity_name || "Activity"} · View on Strava
+        </a>
+      </div>
+      <Button
+        size="sm"
+        disabled={pending}
+        className="bg-yes text-white hover:bg-yes/85"
+        onClick={() => {
+          if (confirm(`Resolve with ${formatTime(result.elapsed_seconds)}? This cannot be undone.`)) {
+            onAction(() => acceptStravaResult(result.id));
+          }
+        }}
+      >
+        Accept
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={pending}
+        onClick={() => onAction(() => dismissStravaResult(result.id))}
+      >
+        Dismiss
+      </Button>
+    </div>
+  );
+}
+
 export function MarketAdminRow({
   marketId,
   title,
@@ -257,6 +361,8 @@ export function MarketAdminRow({
   status,
   kind,
   outcomes,
+  stravaLinked,
+  stravaResults,
 }: {
   marketId: string;
   title: string;
@@ -264,10 +370,12 @@ export function MarketAdminRow({
   status: string;
   kind: MarketKind;
   outcomes: { id: string; label: string }[];
+  stravaLinked: boolean;
+  stravaResults: StravaResult[];
 }) {
   const [pending, startTransition] = useTransition();
 
-  function runAction(fn: () => Promise<{ ok?: string; error?: string } | null>) {
+  function runAction(fn: () => Promise<ActionResult>) {
     startTransition(async () => {
       const res = await fn();
       if (res?.error) toast.error(res.error);
@@ -312,18 +420,33 @@ export function MarketAdminRow({
           ))}
         </div>
       ) : (
-        <ActionForm action={resolveMarket} className="flex items-center gap-2">
-          {(resolving) => (
-            <>
-              <input type="hidden" name="market_id" value={marketId} />
-              <Input name="actual_time" required placeholder="Official time" className="w-28" />
-              <Button type="submit" size="sm" disabled={resolving}>
-                Resolve
-              </Button>
-            </>
+        <>
+          {stravaLinked && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pending}
+              onClick={() => runAction(() => checkStrava(marketId))}
+            >
+              Check Strava
+            </Button>
           )}
-        </ActionForm>
+          <ActionForm action={resolveMarket} className="flex items-center gap-2">
+            {(resolving) => (
+              <>
+                <input type="hidden" name="market_id" value={marketId} />
+                <Input name="actual_time" required placeholder="Official time" className="w-28" />
+                <Button type="submit" size="sm" disabled={resolving}>
+                  Resolve
+                </Button>
+              </>
+            )}
+          </ActionForm>
+        </>
       )}
+      {stravaResults.map((r) => (
+        <StravaResultRow key={r.id} result={r} onAction={runAction} pending={pending} />
+      ))}
     </div>
   );
 }

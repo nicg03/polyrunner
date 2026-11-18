@@ -1,9 +1,12 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar } from "@/components/avatar";
+import { StravaCard } from "@/components/strava-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCurrentProfile } from "@/lib/auth";
-import { query } from "@/lib/db";
+import { query, queryOne } from "@/lib/db";
+import { isStravaConfigured } from "@/lib/strava";
 import { cn } from "@/lib/utils";
 import { formatCents, formatCredits, formatDateTime } from "@/lib/format";
 
@@ -43,7 +46,15 @@ export default async function PortfolioPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login?next=/portfolio");
 
-  const [positions, trades] = await Promise.all([
+  const [strava, positions, trades] = await Promise.all([
+    isStravaConfigured
+      ? queryOne<{ display_name: string | null; athlete_name: string | null }>(
+          `select coalesce(s.display_name, 'Strava athlete') as display_name,
+                  (select a.name from athletes a where a.user_id = s.user_id) as athlete_name
+             from strava_accounts s where s.user_id = $1`,
+          [profile.id],
+        )
+      : null,
     query<PositionRow>(
       `select p.outcome_id, p.market_id, p.shares, p.cost_basis, op.price,
               o.label as outcome_label, ${MARKET_TITLE_SQL} as title, r.name as race_name,
@@ -93,6 +104,15 @@ export default async function PortfolioPage() {
           <p className="text-sm text-muted-foreground">Your portfolio</p>
         </div>
       </div>
+
+      {isStravaConfigured && (
+        <Suspense>
+          <StravaCard
+            connectedAs={strava?.display_name ?? null}
+            athleteName={strava?.athlete_name ?? null}
+          />
+        </Suspense>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-4">
         <Stat label="Available balance" value={formatCredits(profile.balance)} />

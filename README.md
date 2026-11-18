@@ -39,6 +39,31 @@ update users set is_admin = true where username = 'username';
 From `/admin` you create races, athletes, finish-time markets and Yes/No markets, close trading
 and resolve markets.
 
+## Strava
+
+Runners can connect Strava from their portfolio page. An admin links each athlete to the user who
+runs as them (`/admin` → Strava links). When that user records a run that starts within 1 hour
+before / 8 hours after the race start and covers 95–110% of the race distance, it shows up under
+the market as a proposed result (elapsed time, distance, link to the activity). The admin accepts
+it to resolve the market, or dismisses it and enters the official time by hand. "Check Strava"
+looks the activity up on demand if the webhook missed it.
+
+Setup:
+
+1. Create an app at [strava.com/settings/api](https://www.strava.com/settings/api) with the
+   Authorization Callback Domain set to the site's domain.
+2. Set the web service variables (they stay out of the repo, `.railway/railway.ts` preserves them):
+   ```bash
+   railway variables --service web --set STRAVA_CLIENT_ID=... --set STRAVA_CLIENT_SECRET=...
+   ```
+3. Register the webhook once:
+   ```bash
+   STRAVA_CLIENT_ID=... STRAVA_CLIENT_SECRET=... APP_URL=https://... node scripts/strava-subscribe.mjs
+   ```
+
+New Strava apps can only connect their owner until Strava approves a higher athlete capacity
+(request it from the app settings page).
+
 ## Local development
 
 You need a reachable Postgres (e.g. `brew install postgresql` or Docker).
@@ -64,6 +89,8 @@ Web service variables (defined in `.railway/railway.ts`):
 | --- | --- |
 | `DATABASE_URL` | reference to `Postgres.DATABASE_URL` |
 | `SEED_DEMO` | `true`: loads demo races and athletes if the database is empty |
+| `APP_URL` | public URL, used for the Strava OAuth redirect |
+| `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` | from the Strava app; Strava features are hidden while unset |
 
 To change the infrastructure: edit `.railway/railway.ts`, then run `railway config plan` and
 `railway config apply`.
@@ -91,6 +118,7 @@ db/
   migrations/
     0001_init.sql          schema and trading functions
     0002_custom_markets.sql Yes/No markets and outcome-based resolution
+    0003_strava.sql        Strava accounts and proposed results
   seed.sql                 demo data
 scripts/migrate.mjs        migration runner
 .railway/railway.ts        Railway infrastructure

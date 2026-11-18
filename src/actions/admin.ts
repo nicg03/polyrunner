@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/lib/auth";
-import { query } from "@/lib/db";
+import { query, queryOne } from "@/lib/db";
+import { syncMarket } from "@/lib/strava";
 import { formatTime, parseTime } from "@/lib/time";
 import type { ActionResult } from "@/lib/types";
 
@@ -128,6 +129,55 @@ export async function resolveMarket(_prev: ActionResult, formData: FormData): Pr
 
     await query("select resolve_market($1, $2)", [marketId, seconds]);
     return `Market resolved with a time of ${formatTime(seconds)}`;
+  });
+}
+
+export async function linkAthleteUser(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  return run(async () => {
+    const athleteId = str(formData, "athlete_id");
+    const userId = str(formData, "user_id") || null;
+    if (!athleteId) throw new Error("Pick an athlete");
+    if (userId) await query("update athletes set user_id = null where user_id = $1", [userId]);
+    await query("update athletes set user_id = $2 where id = $1", [athleteId, userId]);
+    return userId ? "Athlete linked" : "Athlete unlinked";
+  });
+}
+
+export async function checkStrava(marketId: string): Promise<ActionResult> {
+  return run(async () => {
+    const found = await syncMarket(marketId);
+    return found > 0 ? "Found a matching Strava activity" : "No matching Strava activity yet";
+  });
+}
+
+export async function acceptStravaResult(resultId: string): Promise<ActionResult> {
+  return run(async () => {
+    const result = await queryOne<{ market_id: string; activity_id: number; elapsed_seconds: number }>(
+      "select market_id, activity_id, elapsed_seconds from strava_results where id = $1 and status = 'pending'",
+      [resultId],
+    );
+    if (!result) throw new Error("This Strava result is no longer pending");
+
+    await query("select resolve_market($1, $2)", [result.market_id, result.elapsed_seconds]);
+    await query("update markets set strava_activity_id = $2 where id = $1", [
+      result.market_id,
+      result.activity_id,
+    ]);
+    await query(
+      `update strava_results set status = case when id = $2 then 'accepted' else 'dismissed' end
+        where market_id = $1 and status = 'pending'`,
+      [result.market_id, resultId],
+    );
+    return `Market resolved with a time of ${formatTime(result.elapsed_seconds)}`;
+  });
+}
+
+export async function dismissStravaResult(resultId: string): Promise<ActionResult> {
+  return run(async () => {
+    await query("update strava_results set status = 'dismissed' where id = $1 and status = 'pending'", [
+      resultId,
+    ]);
+    return "Strava result dismissed";
   });
 }
 

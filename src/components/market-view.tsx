@@ -119,6 +119,16 @@ export function MarketView({
                   </span>
                 </p>
                 <p className="text-sm text-muted-foreground">Winning bracket: {winner.label}</p>
+                {market.strava_activity_id && (
+                  <a
+                    href={`https://www.strava.com/activities/${market.strava_activity_id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-block text-sm font-medium text-[#fc5200] hover:underline"
+                  >
+                    Verified with Strava · View on Strava
+                  </a>
+                )}
               </div>
             ) : (
               <p className="font-semibold">Resolved: {winner.label}</p>

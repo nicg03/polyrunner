@@ -50,8 +50,20 @@ export interface Market {
   closes_at: string | null;
   actual_time_seconds: number | null;
   winning_outcome_id: string | null;
+  strava_activity_id: number | null;
   volume: number;
   created_at: string;
+}
+
+export interface StravaResult {
+  id: string;
+  market_id: string;
+  activity_id: number;
+  activity_name: string | null;
+  elapsed_seconds: number;
+  moving_seconds: number | null;
+  distance_m: number;
+  start_date: string;
 }
 
 export interface MarketWithRelations extends Market {

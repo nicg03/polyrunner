@@ -1,4 +1,4 @@
-import { defineRailway, github, postgres, project, service, volume } from "railway/iac";
+import { defineRailway, github, postgres, preserve, project, service, volume } from "railway/iac";
 
 export default defineRailway(() => {
   const Postgres = postgres("Postgres", { region: "us-west2" });
@@ -12,6 +12,10 @@ export default defineRailway(() => {
     variables: {
       DATABASE_URL: Postgres.env.DATABASE_URL,
       SEED_DEMO: "true",
+      APP_URL: "https://web-production-dd376083.up.railway.app",
+      // Set from the Strava app settings with `railway variables --set`; kept out of the repo.
+      STRAVA_CLIENT_ID: preserve(),
+      STRAVA_CLIENT_SECRET: preserve(),
     },
   });
 

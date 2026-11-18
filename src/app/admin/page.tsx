@@ -1,8 +1,17 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { AthleteForm, CustomMarketForm, MarketAdminRow, MarketForm, RaceForm } from "./forms";
-import type { Athlete, MarketKind, Race } from "@/lib/types";
+import { isStravaConfigured } from "@/lib/strava";
+import {
+  AthleteForm,
+  CustomMarketForm,
+  MarketAdminRow,
+  MarketForm,
+  RaceForm,
+  StravaLinkRow,
+  type StravaUser,
+} from "./forms";
+import type { Athlete, MarketKind, Race, StravaResult } from "@/lib/types";
 
 export const metadata = { title: "Admin · PolyRunner" };
 
@@ -13,6 +22,8 @@ interface AdminMarket {
   title: string;
   race_name: string;
   outcomes: { id: string; label: string }[];
+  strava_linked: boolean;
+  strava_results: StravaResult[];
 }
 
 export default async function AdminPage() {
@@ -34,20 +45,31 @@ export default async function AdminPage() {
     );
   }
 
-  const [races, athletes, markets] = await Promise.all([
+  const [races, athletes, markets, stravaUsers] = await Promise.all([
     query<Race>("select * from races order by starts_at desc"),
-    query<Athlete>("select * from athletes order by name"),
+    query<Athlete & { user_id: string | null }>("select * from athletes order by name"),
     query<AdminMarket>(
       `select m.id, m.status, m.kind, r.name as race_name,
               case when m.kind = 'custom' then m.question else 'Finish time: ' || a.name end as title,
               (select jsonb_agg(jsonb_build_object('id', o.id, 'label', o.label) order by o.sort_order)
-                 from outcomes o where o.market_id = m.id) as outcomes
+                 from outcomes o where o.market_id = m.id) as outcomes,
+              exists (select 1 from strava_accounts s where s.user_id = a.user_id) as strava_linked,
+              (select coalesce(jsonb_agg(sr order by sr.created_at), '[]'::jsonb)
+                 from strava_results sr
+                where sr.market_id = m.id and sr.status = 'pending') as strava_results
          from markets m
          join races r on r.id = m.race_id
          left join athletes a on a.id = m.athlete_id
         where m.status <> 'resolved'
         order by m.closes_at, m.kind desc`,
     ),
+    isStravaConfigured
+      ? query<StravaUser>(
+          `select u.id, u.username, s.display_name
+             from strava_accounts s join users u on u.id = s.user_id
+            order by u.username`,
+        )
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -69,6 +91,21 @@ export default async function AdminPage() {
         </Panel>
       </div>
 
+      {isStravaConfigured && (
+        <section className="rounded-xl border bg-card">
+          <div className="border-b px-4 py-3">
+            <h2 className="font-medium">Strava links</h2>
+            <p className="text-xs text-muted-foreground">
+              Link each athlete to the user who runs as them. Their race-day Strava activities then
+              show up below as results to confirm.
+            </p>
+          </div>
+          {athletes.map((a) => (
+            <StravaLinkRow key={a.id} athlete={a} users={stravaUsers} />
+          ))}
+        </section>
+      )}
+
       <section className="rounded-xl border bg-card">
         <div className="border-b px-4 py-3">
           <h2 className="font-medium">Markets to resolve</h2>
@@ -89,6 +126,8 @@ export default async function AdminPage() {
               title={m.title}
               subtitle={m.race_name}
               outcomes={m.outcomes}
+              stravaLinked={isStravaConfigured && m.strava_linked}
+              stravaResults={m.strava_results}
             />
           ))
         )}
