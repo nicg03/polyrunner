@@ -4,6 +4,7 @@ import { MarketCard } from "@/components/market-card";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { getMarkets, getRace, isUuid } from "@/lib/queries";
 import { formatDateTime, formatVolume } from "@/lib/format";
+import type { MarketWithRelations } from "@/lib/types";
 
 export default async function RacePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,21 +32,29 @@ export default async function RacePage({ params }: { params: Promise<{ id: strin
               <MapPin className="size-4" /> {race.location}
             </span>
           )}
-          <span>{formatVolume(volume)} crediti vol. totale</span>
+          <span>{formatVolume(volume)} credits total vol.</span>
         </div>
       </section>
 
-      {markets.length === 0 ? (
-        <p className="py-16 text-center text-muted-foreground">
-          Nessun atleta ancora in questa gara.
-        </p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {markets.map((m) => (
-            <MarketCard key={m.id} market={m} />
-          ))}
-        </div>
+      {markets.length === 0 && (
+        <p className="py-16 text-center text-muted-foreground">No markets in this race yet.</p>
       )}
+      <MarketSection title="Finish times" markets={markets.filter((m) => m.kind === "time")} />
+      <MarketSection title="Other bets" markets={markets.filter((m) => m.kind === "custom")} />
     </div>
+  );
+}
+
+function MarketSection({ title, markets }: { title: string; markets: MarketWithRelations[] }) {
+  if (markets.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {markets.map((m) => (
+          <MarketCard key={m.id} market={m} />
+        ))}
+      </div>
+    </section>
   );
 }

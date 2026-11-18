@@ -1,100 +1,109 @@
 # PolyRunner
 
-Mercati di previsione in stile Polymarket sui tempi di gara dei tuoi amici runner.
-Nato per gioco: si usano solo **crediti virtuali**.
+Polymarket-style prediction markets on your running friends' races.
+Just for fun: everything runs on **virtual credits**.
 
-## Come funziona
+## How it works
 
-- Ogni **mercato** è un atleta in una gara (es. "Che tempo farà Marco alla Milano Marathon?").
-- Il mercato è diviso in **fasce di tempo** (`< 3:15:00`, `3:15:00 - 3:30:00`, ...). Il prezzo di
-  ogni fascia va da 0 a 100 centesimi ed è la probabilità implicita.
-- Ogni utente parte con **1000 crediti**. Compri quote della fascia in cui credi: se alla fine è
-  quella giusta, ogni quota vale 1 credito, altrimenti 0. Puoi rivendere prima della chiusura.
-- I prezzi sono calcolati da un market maker automatico **LMSR**
-  (Logarithmic Market Scoring Rule): c'è sempre liquidità anche con pochi giocatori, e i prezzi
-  sommano sempre al 100%.
-- Dopo la gara un admin inserisce il tempo ufficiale e il mercato viene risolto automaticamente.
+Each race can have two kinds of markets:
+
+- **Finish-time markets**: one per athlete per race (e.g. "What time will Marco run?"). The market
+  is split into **time brackets** (`< 3:15:00`, `3:15:00 - 3:30:00`, ...).
+- **Yes/No markets**: free-form questions created by the admin (e.g. "Will Marco stop to walk at
+  any point?", "Will Luca finish ahead of Giulia?"), optionally tied to an athlete.
+
+Every outcome trades between 0 and 100 cents, and the price is its implied probability.
+
+- Every user starts with **1,000 credits**. Buy shares of the outcome you believe in: if it wins,
+  each share pays 1 credit, otherwise 0. You can sell back any time before trading closes.
+- Prices come from an automated **LMSR** market maker (Logarithmic Market Scoring Rule): there is
+  always liquidity even with few players, and prices always add up to 100%.
+- After the race an admin enters the official time (finish-time markets) or picks the winning
+  outcome (Yes/No markets), and payouts happen automatically.
 
 ## Stack
 
 - [Next.js 15](https://nextjs.org) (App Router, Server Actions), Tailwind CSS, shadcn/ui, Recharts
-- PostgreSQL via [`pg`](https://node-postgres.com), login con nickname e password (sessioni nel database)
-- Deploy su [Railway](https://railway.com) (servizio web + Postgres), configurato in `.railway/railway.ts`
+- PostgreSQL via [`pg`](https://node-postgres.com), username/password login (sessions stored in the database)
+- Deployed on [Railway](https://railway.com) (web service + Postgres), configured in `.railway/railway.ts`
 
-## Account e admin
+## Accounts and admin
 
-Ci si registra con nickname e password da `/login`. **Il primo utente registrato diventa admin**;
-per promuoverne altri:
+Sign up with a username and password at `/login`. **The first user to sign up becomes admin**;
+to promote others:
 
 ```sql
-update users set is_admin = true where username = 'nickname';
+update users set is_admin = true where username = 'username';
 ```
 
-Da `/admin` si creano gare, atleti e mercati, si chiudono le giocate e si risolvono i mercati.
+From `/admin` you create races, athletes, finish-time markets and Yes/No markets, close trading
+and resolve markets.
 
-## Sviluppo in locale
+## Local development
 
-Serve un Postgres raggiungibile (es. `brew install postgresql` oppure Docker).
+You need a reachable Postgres (e.g. `brew install postgresql` or Docker).
 
 ```bash
-cp .env.example .env.local   # imposta DATABASE_URL
+cp .env.example .env.local   # set DATABASE_URL
 npm install
-npm run db:migrate           # crea lo schema (e i dati demo se SEED_DEMO=true)
+npm run db:migrate           # creates the schema (and demo data if SEED_DEMO=true)
 npm run dev
 ```
 
-## Deploy su Railway
+## Deploying on Railway
 
-Il progetto Railway `polyrunner` ha due servizi:
+The Railway project `polyrunner` has two services:
 
-- **web**: collegato a questo repository, ogni push su `main` fa un nuovo deploy. Prima di ogni
-  deploy esegue `node scripts/migrate.mjs`, che applica le migration nuove in `db/migrations`.
-- **Postgres**: database gestito, raggiungibile solo dalla rete privata del progetto.
+- **web**: linked to this repository, every push to `main` triggers a deploy. Before each deploy
+  it runs `node scripts/migrate.mjs`, which applies any new migrations in `db/migrations`.
+- **Postgres**: managed database, reachable only from the project's private network.
 
-Variabili del servizio web (definite in `.railway/railway.ts`):
+Web service variables (defined in `.railway/railway.ts`):
 
-| Variabile | Valore |
+| Variable | Value |
 | --- | --- |
-| `DATABASE_URL` | riferimento a `Postgres.DATABASE_URL` |
-| `SEED_DEMO` | `true`: carica gare e atleti di esempio se il database è vuoto |
+| `DATABASE_URL` | reference to `Postgres.DATABASE_URL` |
+| `SEED_DEMO` | `true`: loads demo races and athletes if the database is empty |
 
-Per modificare l'infrastruttura: modifica `.railway/railway.ts`, poi `railway config plan` e
+To change the infrastructure: edit `.railway/railway.ts`, then run `railway config plan` and
 `railway config apply`.
 
-## Struttura
+## Structure
 
 ```
 src/
   app/
-    page.tsx               griglia dei mercati
-    races/[id]/            tutti gli atleti di una gara
-    markets/[id]/          grafico, fasce, pannello Compra/Vendi, attività
-    portfolio/             posizioni, P&L, storico
-    leaderboard/           classifica
-    admin/                 gestione gare, atleti, mercati e risoluzione
-    login/                 registrazione e accesso
+    page.tsx               market grid with race / bet type filters
+    races/[id]/            all markets for a race
+    markets/[id]/          chart, outcomes, Buy/Sell panel, activity
+    portfolio/             positions, P&L, history
+    leaderboard/           rankings
+    admin/                 races, athletes, markets and resolution
+    login/                 sign up and log in
   actions/                 server actions (auth, trade, admin)
   components/              UI (MarketCard, TradePanel, PriceChart, ...)
   lib/
-    db.ts                  pool Postgres
-    auth.ts                password (scrypt) e sessioni
-    lmsr.ts                formule LMSR per l'anteprima lato client
-    time.ts                parsing/formattazione tempi e generazione fasce
+    db.ts                  Postgres pool
+    auth.ts                passwords (scrypt) and sessions
+    lmsr.ts                LMSR formulas for the client-side preview
+    time.ts                time parsing/formatting and bracket generation
 db/
-  migrations/0001_init.sql schema e funzioni di trading
-  seed.sql                 dati di esempio
-scripts/migrate.mjs        runner delle migration
-.railway/railway.ts        infrastruttura Railway
+  migrations/
+    0001_init.sql          schema and trading functions
+    0002_custom_markets.sql Yes/No markets and outcome-based resolution
+  seed.sql                 demo data
+scripts/migrate.mjs        migration runner
+.railway/railway.ts        Railway infrastructure
 ```
 
-## Note sul modello
+## Model notes
 
-Saldo, quote e prezzi si modificano solo dentro le funzioni Postgres `buy_shares`,
-`sell_shares` e `resolve_market`, in una transazione con lock sul mercato.
+Balances, shares and prices only change inside the Postgres functions `buy_shares`,
+`sell_shares`, `resolve_market` and `resolve_market_outcome`, in a transaction that locks the market.
 
-- Prezzo: `p_i = exp(q_i / b) / Σ exp(q_j / b)`
-- Quote ottenute spendendo `A` crediti: `x = b · ln(1 + (exp(A / b) − 1) / p_i)`
-- Ricavo vendendo `x` quote: `−b · ln(1 − p_i + p_i · exp(−x / b))`
+- Price: `p_i = exp(q_i / b) / Σ exp(q_j / b)`
+- Shares bought by spending `A` credits: `x = b · ln(1 + (exp(A / b) − 1) / p_i)`
+- Proceeds from selling `x` shares: `−b · ln(1 − p_i + p_i · exp(−x / b))`
 
-Il parametro `b` (liquidità) si sceglie per mercato: più è alto, meno i prezzi si muovono a ogni
-giocata. Le probabilità iniziali delle fasce si possono impostare alla creazione del mercato.
+The liquidity parameter `b` is set per market: the higher it is, the less prices move on each
+trade. Initial probabilities (per bracket, or the starting Yes %) can be set when creating a market.

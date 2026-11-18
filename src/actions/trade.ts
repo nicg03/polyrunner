@@ -7,13 +7,13 @@ import { formatCredits } from "@/lib/format";
 import type { ActionResult } from "@/lib/types";
 
 function errorMessage(e: unknown) {
-  return e instanceof Error ? e.message : "Errore sconosciuto";
+  return e instanceof Error ? e.message : "Unknown error";
 }
 
 export async function buyShares(outcomeId: string, amount: number): Promise<ActionResult> {
-  if (!Number.isFinite(amount) || amount <= 0) return { error: "Importo non valido" };
+  if (!Number.isFinite(amount) || amount <= 0) return { error: "Invalid amount" };
   const profile = await getCurrentProfile();
-  if (!profile) return { error: "Devi effettuare il login" };
+  if (!profile) return { error: "You need to log in" };
 
   try {
     const row = await queryOne<{ r: { shares: number } }>("select buy_shares($1, $2, $3) as r", [
@@ -23,7 +23,7 @@ export async function buyShares(outcomeId: string, amount: number): Promise<Acti
     ]);
     revalidatePath("/", "layout");
     return {
-      ok: `Comprate ${Number(row!.r.shares).toFixed(2)} quote per ${formatCredits(amount)} crediti`,
+      ok: `Bought ${Number(row!.r.shares).toFixed(2)} shares for ${formatCredits(amount)} credits`,
     };
   } catch (e) {
     return { error: errorMessage(e) };
@@ -31,9 +31,9 @@ export async function buyShares(outcomeId: string, amount: number): Promise<Acti
 }
 
 export async function sellShares(outcomeId: string, shares: number): Promise<ActionResult> {
-  if (!Number.isFinite(shares) || shares <= 0) return { error: "Quote non valide" };
+  if (!Number.isFinite(shares) || shares <= 0) return { error: "Invalid shares" };
   const profile = await getCurrentProfile();
-  if (!profile) return { error: "Devi effettuare il login" };
+  if (!profile) return { error: "You need to log in" };
 
   try {
     const row = await queryOne<{ r: { proceeds: number } }>("select sell_shares($1, $2, $3) as r", [
@@ -43,7 +43,7 @@ export async function sellShares(outcomeId: string, shares: number): Promise<Act
     ]);
     revalidatePath("/", "layout");
     return {
-      ok: `Vendute ${shares.toFixed(2)} quote per ${formatCredits(row!.r.proceeds)} crediti`,
+      ok: `Sold ${shares.toFixed(2)} shares for ${formatCredits(row!.r.proceeds)} credits`,
     };
   } catch (e) {
     return { error: errorMessage(e) };

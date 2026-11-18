@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Clock, MapPin, Ruler } from "lucide-react";
+import { CheckCircle2, Clock, HelpCircle, MapPin, Ruler } from "lucide-react";
 import { Avatar } from "@/components/avatar";
-import { PriceChart, OUTCOME_COLORS } from "@/components/price-chart";
+import { PriceChart, OUTCOME_COLORS, YES_NO_COLORS } from "@/components/price-chart";
 import { TradePanel, type TradeOutcome } from "@/components/trade-panel";
 import { cn } from "@/lib/utils";
+import { marketTitle } from "@/lib/markets";
 import {
   formatCents,
   formatCredits,
@@ -42,7 +43,7 @@ export function MarketView({
 }: {
   market: Market;
   race: Race;
-  athlete: Athlete;
+  athlete: Athlete | null;
   outcomes: TradeOutcome[];
   snapshots: PriceSnapshot[];
   activity: ActivityItem[];
@@ -50,7 +51,11 @@ export function MarketView({
   balance: number | null;
   isLoggedIn: boolean;
 }) {
+  const isCustom = market.kind === "custom";
+  const colors = isCustom ? YES_NO_COLORS : OUTCOME_COLORS;
+
   const [selected, setSelected] = useState(() => {
+    if (isCustom) return 0;
     let best = 0;
     outcomes.forEach((o, i) => {
       if (o.price > outcomes[best].price) best = i;
@@ -68,16 +73,20 @@ export function MarketView({
     <div className="grid gap-6 py-6 lg:grid-cols-[1fr_340px]">
       <div className="flex min-w-0 flex-col gap-6">
         <div className="flex items-start gap-4">
-          <Avatar name={athlete.name} url={athlete.avatar_url} size={64} className="rounded-xl" />
+          {athlete ? (
+            <Avatar name={athlete.name} url={athlete.avatar_url} size={64} className="rounded-xl" />
+          ) : (
+            <span className="flex size-16 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+              <HelpCircle className="size-8" />
+            </span>
+          )}
           <div className="min-w-0">
             <Link href={`/races/${race.id}`} className="text-sm text-muted-foreground hover:underline">
               {race.name}
             </Link>
-            <h1 className="text-2xl font-semibold leading-tight">
-              Che tempo farà {athlete.name}?
-            </h1>
+            <h1 className="text-2xl font-semibold leading-tight">{marketTitle(market, athlete)}</h1>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span>{formatVolume(market.volume)} crediti vol.</span>
+              <span>{formatVolume(market.volume)} credits vol.</span>
               <span className="flex items-center gap-1">
                 <Ruler className="size-3" /> {Number(race.distance_km)} km
               </span>
@@ -89,42 +98,53 @@ export function MarketView({
               <span className="flex items-center gap-1">
                 <Clock className="size-3" />
                 {resolved
-                  ? `Risolto`
+                  ? "Resolved"
                   : isOpen && market.closes_at
-                    ? `Chiude ${formatRelative(market.closes_at)}`
-                    : `Gara del ${formatDate(race.starts_at)}`}
+                    ? `Closes ${formatRelative(market.closes_at)}`
+                    : `Race on ${formatDate(race.starts_at)}`}
               </span>
             </div>
           </div>
         </div>
 
-        {resolved && winner && market.actual_time_seconds && (
+        {resolved && winner && (
           <div className="flex items-center gap-3 rounded-xl border border-yes/40 bg-yes/10 p-4">
             <CheckCircle2 className="size-6 text-yes" />
-            <div>
-              <p className="font-semibold">
-                Tempo ufficiale: {formatTime(market.actual_time_seconds)}{" "}
-                <span className="font-normal text-muted-foreground">
-                  ({formatPace(market.actual_time_seconds, Number(race.distance_km))})
-                </span>
-              </p>
-              <p className="text-sm text-muted-foreground">Fascia vincente: {winner.label}</p>
-            </div>
+            {market.actual_time_seconds ? (
+              <div>
+                <p className="font-semibold">
+                  Official time: {formatTime(market.actual_time_seconds)}{" "}
+                  <span className="font-normal text-muted-foreground">
+                    ({formatPace(market.actual_time_seconds, Number(race.distance_km))})
+                  </span>
+                </p>
+                <p className="text-sm text-muted-foreground">Winning bracket: {winner.label}</p>
+              </div>
+            ) : (
+              <p className="font-semibold">Resolved: {winner.label}</p>
+            )}
           </div>
         )}
 
         <div className="rounded-xl border bg-card p-4">
-          <PriceChart outcomes={outcomes} snapshots={snapshots} />
+          {isCustom && !resolved && (
+            <p className="mb-3 text-3xl font-semibold">
+              {formatPercent(outcomes[0].price)}{" "}
+              <span className="text-base font-normal text-muted-foreground">chance</span>
+            </p>
+          )}
+          <PriceChart outcomes={outcomes} snapshots={snapshots} colors={colors} />
         </div>
 
         <div className="overflow-hidden rounded-xl border bg-card">
           <div className="flex items-center justify-between border-b px-4 py-2 text-xs text-muted-foreground">
-            <span>Fascia di tempo</span>
-            <span>Probabilità</span>
+            <span>{isCustom ? "Outcome" : "Time bracket"}</span>
+            <span>Probability</span>
           </div>
           {outcomes.map((o, i) => {
             const owned = positions[o.id] ?? 0;
             const isWinner = o.id === market.winning_outcome_id;
+            const isNo = isCustom && i === 1;
             return (
               <div
                 key={o.id}
@@ -135,12 +155,12 @@ export function MarketView({
               >
                 <span
                   className="size-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: OUTCOME_COLORS[i % OUTCOME_COLORS.length] }}
+                  style={{ backgroundColor: colors[i % colors.length] }}
                 />
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{o.label}</p>
                   {owned > 0 && (
-                    <p className="text-xs text-primary">Hai {owned.toFixed(2)} quote</p>
+                    <p className="text-xs text-primary">You hold {owned.toFixed(2)} shares</p>
                   )}
                 </div>
                 <span className="text-2xl font-semibold">
@@ -150,9 +170,14 @@ export function MarketView({
                   <button
                     onClick={() => setSelected(i)}
                     disabled={!isOpen}
-                    className="w-28 rounded-lg bg-yes/15 px-3 py-2 text-sm font-medium text-yes transition-colors hover:bg-yes/25 disabled:opacity-50"
+                    className={cn(
+                      "w-32 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50",
+                      isNo
+                        ? "bg-no/15 text-no hover:bg-no/25"
+                        : "bg-yes/15 text-yes hover:bg-yes/25",
+                    )}
                   >
-                    Compra {formatCents(o.price)}
+                    Buy {isCustom ? o.label : ""} {formatCents(o.price)}
                   </button>
                 )}
               </div>
@@ -161,10 +186,10 @@ export function MarketView({
         </div>
 
         <div className="rounded-xl border bg-card">
-          <h2 className="border-b px-4 py-3 font-medium">Attività</h2>
+          <h2 className="border-b px-4 py-3 font-medium">Activity</h2>
           {activity.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-              Ancora nessuna giocata. Sii il primo!
+              No trades yet. Be the first!
             </p>
           ) : (
             <ul>
@@ -174,9 +199,9 @@ export function MarketView({
                   <span className="min-w-0 flex-1 truncate">
                     <b>{a.username}</b>{" "}
                     <span className={a.side === "buy" ? "text-yes" : "text-no"}>
-                      {a.side === "buy" ? "ha comprato" : "ha venduto"}
+                      {a.side === "buy" ? "bought" : "sold"}
                     </span>{" "}
-                    {Number(a.shares).toFixed(1)} quote <b>{a.outcome_label}</b> per{" "}
+                    {Number(a.shares).toFixed(1)} <b>{a.outcome_label}</b> shares for{" "}
                     {formatCredits(a.cost)}
                   </span>
                   <span className="shrink-0 text-xs text-muted-foreground">
@@ -188,9 +213,9 @@ export function MarketView({
           )}
         </div>
 
-        {athlete.bio && (
+        {athlete?.bio && (
           <div className="rounded-xl border bg-card p-4 text-sm">
-            <h2 className="mb-1 font-medium">Su {athlete.name}</h2>
+            <h2 className="mb-1 font-medium">About {athlete.name}</h2>
             <p className="text-muted-foreground">{athlete.bio}</p>
             {athlete.personal_best_seconds && (
               <p className="mt-2">
@@ -204,7 +229,7 @@ export function MarketView({
       <div className="lg:sticky lg:top-20 lg:self-start">
         {resolved ? (
           <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
-            Mercato risolto. Le vincite sono state accreditate automaticamente.
+            This market is resolved. Winnings have been paid out automatically.
           </div>
         ) : (
           <TradePanel
@@ -216,6 +241,7 @@ export function MarketView({
             positions={positions}
             isOpen={isOpen}
             isLoggedIn={isLoggedIn}
+            isYesNo={isCustom}
           />
         )}
       </div>

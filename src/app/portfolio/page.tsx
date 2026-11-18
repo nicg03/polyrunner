@@ -11,19 +11,21 @@ export const metadata = { title: "Portfolio · PolyRunner" };
 
 const STARTING_BALANCE = 1000;
 
+const MARKET_TITLE_SQL = `
+  case when m.kind = 'custom' then m.question else 'What time will ' || a.name || ' run?' end
+`;
+
 interface PositionRow {
   outcome_id: string;
   market_id: string;
   shares: number;
   cost_basis: number;
   price: number;
-  outcome: { label: string } | null;
-  market: {
-    status: string;
-    winning_outcome_id: string | null;
-    athlete: { name: string } | null;
-    race: { name: string } | null;
-  } | null;
+  outcome_label: string;
+  title: string;
+  race_name: string;
+  status: string;
+  winning_outcome_id: string | null;
 }
 
 interface TradeRow {
@@ -33,8 +35,8 @@ interface TradeRow {
   cost: number;
   created_at: string;
   market_id: string;
-  outcome: { label: string } | null;
-  market: { athlete: { name: string } | null } | null;
+  outcome_label: string;
+  title: string;
 }
 
 export default async function PortfolioPage() {
@@ -43,19 +45,13 @@ export default async function PortfolioPage() {
 
   const [positions, trades] = await Promise.all([
     query<PositionRow>(
-      `select p.outcome_id, p.market_id, p.shares, p.cost_basis,
-              jsonb_build_object('label', o.label) as outcome,
-              jsonb_build_object(
-                'status', m.status,
-                'winning_outcome_id', m.winning_outcome_id,
-                'athlete', jsonb_build_object('name', a.name),
-                'race', jsonb_build_object('name', r.name)
-              ) as market,
-              op.price
+      `select p.outcome_id, p.market_id, p.shares, p.cost_basis, op.price,
+              o.label as outcome_label, ${MARKET_TITLE_SQL} as title, r.name as race_name,
+              m.status, m.winning_outcome_id
          from positions p
          join outcomes o on o.id = p.outcome_id
          join markets m on m.id = p.market_id
-         join athletes a on a.id = m.athlete_id
+         left join athletes a on a.id = m.athlete_id
          join races r on r.id = m.race_id
          join outcome_prices op on op.outcome_id = p.outcome_id
         where p.user_id = $1 and p.shares > 0
@@ -64,12 +60,11 @@ export default async function PortfolioPage() {
     ),
     query<TradeRow>(
       `select t.id, t.side, t.shares, t.cost, t.created_at, t.market_id,
-              jsonb_build_object('label', o.label) as outcome,
-              jsonb_build_object('athlete', jsonb_build_object('name', a.name)) as market
+              o.label as outcome_label, ${MARKET_TITLE_SQL} as title
          from trades t
          join outcomes o on o.id = t.outcome_id
          join markets m on m.id = t.market_id
-         join athletes a on a.id = m.athlete_id
+         left join athletes a on a.id = m.athlete_id
         where t.user_id = $1
         order by t.created_at desc limit 50`,
       [profile.id],
@@ -77,13 +72,10 @@ export default async function PortfolioPage() {
   ]);
 
   const rows = positions.map((p) => {
-    const shares = Number(p.shares);
-    const costBasis = Number(p.cost_basis);
-    const price = Number(p.price);
-    const resolved = p.market?.status === "resolved";
-    const won = resolved && p.market?.winning_outcome_id === p.outcome_id;
-    const value = shares * price;
-    return { ...p, shares, costBasis, price, resolved, won, value, pnl: value - costBasis };
+    const resolved = p.status === "resolved";
+    const won = resolved && p.winning_outcome_id === p.outcome_id;
+    const value = p.shares * p.price;
+    return { ...p, resolved, won, value, pnl: value - p.cost_basis };
   });
 
   const open = rows.filter((r) => !r.resolved);
@@ -98,52 +90,55 @@ export default async function PortfolioPage() {
         <Avatar name={profile.username} url={profile.avatar_url} size={56} />
         <div>
           <h1 className="text-2xl font-semibold">{profile.username}</h1>
-          <p className="text-sm text-muted-foreground">Il tuo portfolio</p>
+          <p className="text-sm text-muted-foreground">Your portfolio</p>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">
-        <Stat label="Saldo disponibile" value={formatCredits(profile.balance)} />
-        <Stat label="Valore posizioni" value={formatCredits(positionsValue)} />
-        <Stat label="Totale" value={formatCredits(total)} />
+        <Stat label="Available balance" value={formatCredits(profile.balance)} />
+        <Stat label="Positions value" value={formatCredits(positionsValue)} />
+        <Stat label="Total" value={formatCredits(total)} />
         <Stat
-          label="Profitto / perdita"
+          label="Profit / loss"
           value={`${totalPnl >= 0 ? "+" : ""}${formatCredits(totalPnl)}`}
           className={totalPnl >= 0 ? "text-yes" : "text-no"}
         />
       </div>
 
       <section className="rounded-xl border bg-card">
-        <h2 className="border-b px-4 py-3 font-medium">Posizioni aperte</h2>
+        <h2 className="border-b px-4 py-3 font-medium">Open positions</h2>
         {open.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            Nessuna posizione aperta. <Link href="/" className="text-primary hover:underline">Esplora i mercati</Link>
+            No open positions.{" "}
+            <Link href="/" className="text-primary hover:underline">
+              Browse markets
+            </Link>
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">Mercato</TableHead>
-                <TableHead>Fascia</TableHead>
-                <TableHead className="text-right">Quote</TableHead>
-                <TableHead className="text-right">Prezzo medio</TableHead>
-                <TableHead className="text-right">Prezzo attuale</TableHead>
-                <TableHead className="text-right">Valore</TableHead>
+                <TableHead className="pl-4">Market</TableHead>
+                <TableHead>Outcome</TableHead>
+                <TableHead className="text-right">Shares</TableHead>
+                <TableHead className="text-right">Avg. price</TableHead>
+                <TableHead className="text-right">Current price</TableHead>
+                <TableHead className="text-right">Value</TableHead>
                 <TableHead className="pr-4 text-right">P&L</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {open.map((r) => (
                 <TableRow key={r.outcome_id}>
-                  <TableCell className="pl-4">
-                    <Link href={`/markets/${r.market_id}`} className="font-medium hover:underline">
-                      {r.market?.athlete?.name}
+                  <TableCell className="max-w-72 pl-4">
+                    <Link href={`/markets/${r.market_id}`} className="block truncate font-medium hover:underline">
+                      {r.title}
                     </Link>
-                    <p className="text-xs text-muted-foreground">{r.market?.race?.name}</p>
+                    <p className="text-xs text-muted-foreground">{r.race_name}</p>
                   </TableCell>
-                  <TableCell>{r.outcome?.label}</TableCell>
+                  <TableCell>{r.outcome_label}</TableCell>
                   <TableCell className="text-right">{r.shares.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">{formatCents(r.costBasis / r.shares)}</TableCell>
+                  <TableCell className="text-right">{formatCents(r.cost_basis / r.shares)}</TableCell>
                   <TableCell className="text-right">{formatCents(r.price)}</TableCell>
                   <TableCell className="text-right">{formatCredits(r.value)}</TableCell>
                   <TableCell className={cn("pr-4 text-right", r.pnl >= 0 ? "text-yes" : "text-no")}>
@@ -159,20 +154,20 @@ export default async function PortfolioPage() {
 
       {settled.length > 0 && (
         <section className="rounded-xl border bg-card">
-          <h2 className="border-b px-4 py-3 font-medium">Mercati risolti</h2>
+          <h2 className="border-b px-4 py-3 font-medium">Resolved markets</h2>
           <Table>
             <TableBody>
               {settled.map((r) => (
                 <TableRow key={r.outcome_id}>
-                  <TableCell className="pl-4">
+                  <TableCell className="max-w-96 pl-4">
                     <Link href={`/markets/${r.market_id}`} className="font-medium hover:underline">
-                      {r.market?.athlete?.name}
+                      {r.title}
                     </Link>{" "}
-                    <span className="text-muted-foreground">· {r.outcome?.label}</span>
+                    <span className="text-muted-foreground">· {r.outcome_label}</span>
                   </TableCell>
-                  <TableCell className="text-right">{r.shares.toFixed(2)} quote</TableCell>
+                  <TableCell className="text-right">{r.shares.toFixed(2)} shares</TableCell>
                   <TableCell className={cn("pr-4 text-right font-medium", r.won ? "text-yes" : "text-no")}>
-                    {r.won ? `Vinto +${formatCredits(r.shares)}` : `Perso -${formatCredits(r.costBasis)}`}
+                    {r.won ? `Won +${formatCredits(r.shares)}` : `Lost -${formatCredits(r.cost_basis)}`}
                   </TableCell>
                 </TableRow>
               ))}
@@ -182,24 +177,24 @@ export default async function PortfolioPage() {
       )}
 
       <section className="rounded-xl border bg-card">
-        <h2 className="border-b px-4 py-3 font-medium">Storico giocate</h2>
+        <h2 className="border-b px-4 py-3 font-medium">Trade history</h2>
         {trades.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nessuna giocata.</p>
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">No trades yet.</p>
         ) : (
           <Table>
             <TableBody>
               {trades.map((t) => (
                 <TableRow key={t.id}>
-                  <TableCell className="pl-4">
+                  <TableCell className="max-w-96 pl-4">
                     <span className={t.side === "buy" ? "text-yes" : "text-no"}>
-                      {t.side === "buy" ? "Compra" : "Vendi"}
+                      {t.side === "buy" ? "Buy" : "Sell"}
                     </span>{" "}
                     <Link href={`/markets/${t.market_id}`} className="hover:underline">
-                      {t.market?.athlete?.name}
+                      {t.title}
                     </Link>{" "}
-                    <span className="text-muted-foreground">· {t.outcome?.label}</span>
+                    <span className="text-muted-foreground">· {t.outcome_label}</span>
                   </TableCell>
-                  <TableCell className="text-right">{Number(t.shares).toFixed(2)} quote</TableCell>
+                  <TableCell className="text-right">{Number(t.shares).toFixed(2)} shares</TableCell>
                   <TableCell className="text-right">{formatCredits(t.cost)}</TableCell>
                   <TableCell className="pr-4 text-right text-muted-foreground">
                     {formatDateTime(t.created_at)}

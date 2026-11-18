@@ -29,7 +29,7 @@ export function LoginForm() {
                 mode === m ? "bg-background text-foreground" : "text-muted-foreground",
               )}
             >
-              {m === "login" ? "Accedi" : "Registrati"}
+              {m === "login" ? "Log in" : "Sign up"}
             </button>
           ))}
         </div>
@@ -44,13 +44,13 @@ export function LoginForm() {
             <>
               <input type="hidden" name="next" value={next} />
               <div className="flex flex-col gap-2">
-                <Label htmlFor="username">Nickname</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
                   name="username"
                   required
                   autoComplete="username"
-                  placeholder="es. gazzella_92"
+                  placeholder="e.g. gazelle_92"
                   maxLength={24}
                 />
               </div>
@@ -66,7 +66,7 @@ export function LoginForm() {
                 />
               </div>
               <Button type="submit" size="lg" disabled={pending}>
-                {pending ? "Attendi..." : mode === "login" ? "Accedi" : "Crea account"}
+                {pending ? "Please wait..." : mode === "login" ? "Log in" : "Create account"}
               </Button>
             </>
           )}

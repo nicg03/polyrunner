@@ -9,13 +9,15 @@ import { Label } from "@/components/ui/label";
 import {
   closeMarket,
   createAthlete,
+  createCustomMarket,
   createMarket,
   createRace,
   reopenMarket,
   resolveMarket,
+  resolveMarketOutcome,
 } from "@/actions/admin";
 import { bucketsFromThresholds, parseTime } from "@/lib/time";
-import type { Athlete, Race } from "@/lib/types";
+import type { Athlete, MarketKind, Race } from "@/lib/types";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-input/30 px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -29,7 +31,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-// datetime-local è nel fuso del browser: lo convertiamo in ISO prima di inviarlo al server.
+// datetime-local is in the browser's time zone: convert to ISO before sending it to the server.
 function LocalDateTime({ name, required }: { name: string; required?: boolean }) {
   const [local, setLocal] = useState("");
   const iso = local ? new Date(local).toISOString() : "";
@@ -46,27 +48,57 @@ function LocalDateTime({ name, required }: { name: string; required?: boolean })
   );
 }
 
+function RaceSelect({ races }: { races: Race[] }) {
+  return (
+    <select name="race_id" required className={selectClass} defaultValue="">
+      <option value="" disabled>
+        Choose...
+      </option>
+      {races.map((r) => (
+        <option key={r.id} value={r.id}>
+          {r.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function AthleteSelect({ athletes, optional }: { athletes: Athlete[]; optional?: boolean }) {
+  return (
+    <select name="athlete_id" required={!optional} className={selectClass} defaultValue="">
+      <option value="" disabled={!optional}>
+        {optional ? "None" : "Choose..."}
+      </option>
+      {athletes.map((a) => (
+        <option key={a.id} value={a.id}>
+          {a.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export function RaceForm() {
   return (
     <ActionForm action={createRace} className="flex flex-col gap-3">
       {(pending) => (
         <>
-          <Field label="Nome gara">
+          <Field label="Race name">
             <Input name="name" required placeholder="Milano Marathon 2027" />
           </Field>
-          <Field label="Partenza">
+          <Field label="Start time">
             <LocalDateTime name="starts_at" required />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Distanza (km)">
+            <Field label="Distance (km)">
               <Input name="distance_km" required inputMode="decimal" placeholder="42.195" />
             </Field>
-            <Field label="Luogo">
-              <Input name="location" placeholder="Milano" />
+            <Field label="Location">
+              <Input name="location" placeholder="Milan" />
             </Field>
           </div>
           <Button type="submit" disabled={pending}>
-            Crea gara
+            Create race
           </Button>
         </>
       )}
@@ -80,7 +112,7 @@ export function AthleteForm() {
       {(pending) => (
         <>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Nome">
+            <Field label="Name">
               <Input name="name" required placeholder="Marco" />
             </Field>
             <Field label="Personal best">
@@ -88,13 +120,13 @@ export function AthleteForm() {
             </Field>
           </div>
           <Field label="Bio">
-            <Input name="bio" placeholder="Maratoneta della domenica" />
+            <Input name="bio" placeholder="Weekend marathoner" />
           </Field>
-          <Field label="URL avatar (opzionale)">
+          <Field label="Avatar URL (optional)">
             <Input name="avatar_url" type="url" placeholder="https://..." />
           </Field>
           <Button type="submit" disabled={pending}>
-            Aggiungi atleta
+            Add athlete
           </Button>
         </>
       )}
@@ -125,42 +157,22 @@ export function MarketForm({ races, athletes }: { races: Race[]; athletes: Athle
       {(pending) => (
         <>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Gara">
-              <select name="race_id" required className={selectClass} defaultValue="">
-                <option value="" disabled>
-                  Scegli...
-                </option>
-                {races.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
+            <Field label="Race">
+              <RaceSelect races={races} />
             </Field>
-            <Field label="Atleta">
-              <select name="athlete_id" required className={selectClass} defaultValue="">
-                <option value="" disabled>
-                  Scegli...
-                </option>
-                {athletes.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
+            <Field label="Athlete">
+              <AthleteSelect athletes={athletes} />
             </Field>
           </div>
-          <Field label="Soglie di tempo, separate da virgola (mm:ss o h:mm:ss)">
+          <Field label="Time thresholds, comma separated (mm:ss or h:mm:ss)">
             <Input value={thresholds} onChange={(e) => setThresholds(e.target.value)} />
           </Field>
-          {invalid.length > 0 && (
-            <p className="text-xs text-no">Non valide: {invalid.join(", ")}</p>
-          )}
+          {invalid.length > 0 && <p className="text-xs text-no">Invalid: {invalid.join(", ")}</p>}
 
           {buckets.length > 0 && (
             <div className="flex flex-col gap-1.5 rounded-lg border p-3">
               <p className="text-xs text-muted-foreground">
-                Fasce generate. Probabilità iniziali in % (opzionali, vuoto = uniforme).
+                Generated brackets. Initial probabilities in % (optional, empty = uniform).
               </p>
               {buckets.map((b, i) => (
                 <div key={b.label} className="flex items-center gap-2 text-sm">
@@ -179,16 +191,58 @@ export function MarketForm({ races, athletes }: { races: Race[]; athletes: Athle
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Liquidità b (più alta = prezzi più stabili)">
+            <Field label="Liquidity b (higher = steadier prices)">
               <Input name="liquidity_b" defaultValue="100" inputMode="decimal" />
             </Field>
-            <Field label="Chiusura giocate (vuoto = partenza)">
+            <Field label="Trading closes (empty = race start)">
               <LocalDateTime name="closes_at" />
             </Field>
           </div>
           <input type="hidden" name="outcomes" value={outcomesJson} />
           <Button type="submit" disabled={pending || buckets.length < 2 || invalid.length > 0}>
-            Crea mercato
+            Create market
+          </Button>
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+export function CustomMarketForm({ races, athletes }: { races: Race[]; athletes: Athlete[] }) {
+  return (
+    <ActionForm action={createCustomMarket} className="flex flex-col gap-3">
+      {(pending) => (
+        <>
+          <Field label="Question">
+            <Input
+              name="question"
+              required
+              minLength={5}
+              maxLength={140}
+              placeholder="Will Marco stop to walk at any point?"
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Race">
+              <RaceSelect races={races} />
+            </Field>
+            <Field label="Athlete (optional)">
+              <AthleteSelect athletes={athletes} optional />
+            </Field>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Initial Yes %">
+              <Input name="yes_prob" defaultValue="50" inputMode="decimal" />
+            </Field>
+            <Field label="Liquidity b">
+              <Input name="liquidity_b" defaultValue="100" inputMode="decimal" />
+            </Field>
+            <Field label="Trading closes">
+              <LocalDateTime name="closes_at" />
+            </Field>
+          </div>
+          <Button type="submit" disabled={pending}>
+            Create Yes/No market
           </Button>
         </>
       )}
@@ -201,17 +255,21 @@ export function MarketAdminRow({
   title,
   subtitle,
   status,
+  kind,
+  outcomes,
 }: {
   marketId: string;
   title: string;
   subtitle: string;
   status: string;
+  kind: MarketKind;
+  outcomes: { id: string; label: string }[];
 }) {
   const [pending, startTransition] = useTransition();
 
-  function toggle() {
+  function runAction(fn: () => Promise<{ ok?: string; error?: string } | null>) {
     startTransition(async () => {
-      const res = status === "open" ? await closeMarket(marketId) : await reopenMarket(marketId);
+      const res = await fn();
       if (res?.error) toast.error(res.error);
       else if (res?.ok) toast.success(res.ok);
     });
@@ -222,23 +280,50 @@ export function MarketAdminRow({
       <div className="min-w-0 flex-1">
         <p className="font-medium">{title}</p>
         <p className="text-xs text-muted-foreground">
-          {subtitle} · {status === "open" ? "aperto" : "chiuso"}
+          {subtitle} · {status === "open" ? "open" : "closed"}
         </p>
       </div>
-      <Button variant="outline" size="sm" onClick={toggle} disabled={pending}>
-        {status === "open" ? "Chiudi giocate" : "Riapri"}
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={pending}
+        onClick={() =>
+          runAction(() => (status === "open" ? closeMarket(marketId) : reopenMarket(marketId)))
+        }
+      >
+        {status === "open" ? "Close trading" : "Reopen"}
       </Button>
-      <ActionForm action={resolveMarket} className="flex items-center gap-2">
-        {(resolving) => (
-          <>
-            <input type="hidden" name="market_id" value={marketId} />
-            <Input name="actual_time" required placeholder="Tempo reale" className="w-28" />
-            <Button type="submit" size="sm" disabled={resolving}>
-              Risolvi
+      {kind === "custom" ? (
+        <div className="flex items-center gap-2">
+          {outcomes.map((o, i) => (
+            <Button
+              key={o.id}
+              size="sm"
+              disabled={pending}
+              className={i === 0 ? "bg-yes text-white hover:bg-yes/85" : "bg-no text-white hover:bg-no/85"}
+              onClick={() => {
+                if (confirm(`Resolve as "${o.label}"? This cannot be undone.`)) {
+                  runAction(() => resolveMarketOutcome(marketId, o.id));
+                }
+              }}
+            >
+              Resolve {o.label}
             </Button>
-          </>
-        )}
-      </ActionForm>
+          ))}
+        </div>
+      ) : (
+        <ActionForm action={resolveMarket} className="flex items-center gap-2">
+          {(resolving) => (
+            <>
+              <input type="hidden" name="market_id" value={marketId} />
+              <Input name="actual_time" required placeholder="Official time" className="w-28" />
+              <Button type="submit" size="sm" disabled={resolving}>
+                Resolve
+              </Button>
+            </>
+          )}
+        </ActionForm>
+      )}
     </div>
   );
 }

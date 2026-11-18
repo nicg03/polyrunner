@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Ricarica periodicamente i dati del Server Component finché la scheda è visibile.
+// Periodically refreshes Server Component data while the tab is visible.
 export function AutoRefresh({ intervalMs = 5000 }: { intervalMs?: number }) {
   const router = useRouter();
 

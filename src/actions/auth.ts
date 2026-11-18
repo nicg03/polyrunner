@@ -15,14 +15,14 @@ export async function register(_prev: ActionResult, formData: FormData): Promise
   const password = String(formData.get("password") ?? "");
 
   if (!/^[a-zA-Z0-9_.-]{2,24}$/.test(username)) {
-    return { error: "Nickname da 2 a 24 caratteri: lettere, numeri, _ . -" };
+    return { error: "Username must be 2-24 characters: letters, numbers, _ . -" };
   }
-  if (password.length < 6) return { error: "La password deve avere almeno 6 caratteri" };
+  if (password.length < 6) return { error: "Password must be at least 6 characters" };
 
   const existing = await queryOne("select 1 from users where lower(username) = lower($1)", [username]);
-  if (existing) return { error: "Nickname già in uso" };
+  if (existing) return { error: "Username already taken" };
 
-  // Il primo iscritto diventa admin.
+  // The first user to sign up becomes admin.
   const user = await queryOne<{ id: string }>(
     `insert into users (username, password_hash, is_admin)
      values ($1, $2, not exists (select 1 from users))
@@ -42,7 +42,7 @@ export async function login(_prev: ActionResult, formData: FormData): Promise<Ac
     [username],
   );
   if (!user || !(await verifyPassword(password, user.password_hash))) {
-    return { error: "Nickname o password errati" };
+    return { error: "Wrong username or password" };
   }
   await createSession(user.id);
   redirect(safeNext(formData));

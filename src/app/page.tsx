@@ -11,14 +11,16 @@ export const dynamic = "force-dynamic";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ race?: string; status?: string }>;
+  searchParams: Promise<{ race?: string; status?: string; type?: string }>;
 }) {
   if (!isDatabaseConfigured) return <SetupNotice />;
 
-  const { race, status = "open" } = await searchParams;
+  const { race, status = "open", type } = await searchParams;
   const [allMarkets, races] = await Promise.all([getMarkets({ raceId: race && isUuid(race) ? race : undefined }), getRaces()]);
-  const markets = allMarkets.filter((m) =>
-    status === "resolved" ? m.status === "resolved" : m.status !== "resolved",
+  const markets = allMarkets.filter(
+    (m) =>
+      (status === "resolved" ? m.status === "resolved" : m.status !== "resolved") &&
+      (!type || m.kind === type),
   );
 
   const chip = (active: boolean) =>
@@ -29,10 +31,11 @@ export default async function HomePage({
         : "text-muted-foreground hover:bg-muted hover:text-foreground",
     );
 
-  const href = (params: { race?: string; status?: string }) => {
+  const href = (params: { race?: string; status?: string; type?: string }) => {
     const sp = new URLSearchParams();
     if (params.race) sp.set("race", params.race);
     if (params.status && params.status !== "open") sp.set("status", params.status);
+    if (params.type) sp.set("type", params.type);
     const s = sp.toString();
     return s ? `/?${s}` : "/";
   };
@@ -42,34 +45,46 @@ export default async function HomePage({
       <AutoRefresh intervalMs={15000} />
 
       <section className="rounded-2xl border bg-gradient-to-br from-primary/20 via-card to-card p-6">
-        <h1 className="text-2xl font-semibold sm:text-3xl">Quanto ci metterà?</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl">How fast will they run?</h1>
         <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-          Punta crediti virtuali sulla fascia di tempo in cui pensi che i tuoi amici
-          chiuderanno la gara. Le probabilità si muovono con le giocate di tutti.
+          Bet virtual credits on your friends&apos; finish times and on anything else that
+          might happen on race day. Odds move with every trade.
         </p>
       </section>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Link href={href({ status })} className={chip(!race)}>
-          Tutte le gare
+        <Link href={href({ status, type })} className={chip(!race)}>
+          All races
         </Link>
         {races.map((r) => (
-          <Link key={r.id} href={href({ race: r.id, status })} className={chip(race === r.id)}>
+          <Link key={r.id} href={href({ race: r.id, status, type })} className={chip(race === r.id)}>
             {r.name}
           </Link>
         ))}
+      </div>
+
+      <div className="-mt-3 flex flex-wrap items-center gap-2">
+        <Link href={href({ race, status })} className={chip(!type)}>
+          All bets
+        </Link>
+        <Link href={href({ race, status, type: "time" })} className={chip(type === "time")}>
+          Finish times
+        </Link>
+        <Link href={href({ race, status, type: "custom" })} className={chip(type === "custom")}>
+          Yes / No
+        </Link>
         <div className="ml-auto flex gap-2">
-          <Link href={href({ race, status: "open" })} className={chip(status !== "resolved")}>
-            Attivi
+          <Link href={href({ race, type, status: "open" })} className={chip(status !== "resolved")}>
+            Active
           </Link>
-          <Link href={href({ race, status: "resolved" })} className={chip(status === "resolved")}>
-            Risolti
+          <Link href={href({ race, type, status: "resolved" })} className={chip(status === "resolved")}>
+            Resolved
           </Link>
         </div>
       </div>
 
       {markets.length === 0 ? (
-        <p className="py-16 text-center text-muted-foreground">Nessun mercato qui, per ora.</p>
+        <p className="py-16 text-center text-muted-foreground">No markets here yet.</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {markets.map((m) => (

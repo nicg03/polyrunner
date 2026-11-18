@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import type { ActionResult } from "@/lib/types";
 
-// Form collegato a una server action: mostra un toast con l'esito e si resetta in caso di successo.
+// Form bound to a server action: shows a toast with the result and resets on success.
 export function ActionForm({
   action,
   children,

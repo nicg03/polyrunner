@@ -22,10 +22,10 @@ export async function Navbar() {
 
         <nav className="flex items-center gap-1 text-sm sm:ml-4">
           <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden sm:inline-flex")}>
-            Mercati
+            Markets
           </Link>
           <Link href="/leaderboard" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            <Trophy /> <span className="hidden sm:inline">Classifica</span>
+            <Trophy /> <span className="hidden sm:inline">Leaderboard</span>
           </Link>
           {profile?.is_admin && (
             <Link href="/admin" className={buttonVariants({ variant: "ghost", size: "sm" })}>
@@ -41,7 +41,7 @@ export async function Navbar() {
                 href="/portfolio"
                 className="flex flex-col items-end leading-tight hover:opacity-80"
               >
-                <span className="text-xs text-muted-foreground">Saldo</span>
+                <span className="text-xs text-muted-foreground">Balance</span>
                 <span className="text-sm font-semibold text-yes">
                   {formatCredits(profile.balance)}
                 </span>
@@ -52,13 +52,13 @@ export async function Navbar() {
               <Avatar name={profile.username} url={profile.avatar_url} />
               <form action={logout}>
                 <button className="text-xs text-muted-foreground hover:text-foreground">
-                  Esci
+                  Log out
                 </button>
               </form>
             </>
           ) : (
             <Link href="/login" className={buttonVariants({ size: "sm" })}>
-              Accedi
+              Log in
             </Link>
           )}
         </div>

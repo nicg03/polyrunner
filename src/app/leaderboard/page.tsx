@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { formatCredits } from "@/lib/format";
 import type { LeaderboardRow } from "@/lib/types";
 
-export const metadata = { title: "Classifica · PolyRunner" };
+export const metadata = { title: "Leaderboard · PolyRunner" };
 export const dynamic = "force-dynamic";
 
 const STARTING_BALANCE = 1000;
@@ -26,16 +26,16 @@ export default async function LeaderboardPage() {
       <div className="flex items-center gap-3">
         <Trophy className="size-7 text-[#f2c94c]" />
         <div>
-          <h1 className="text-2xl font-semibold">Classifica</h1>
+          <h1 className="text-2xl font-semibold">Leaderboard</h1>
           <p className="text-sm text-muted-foreground">
-            Saldo + valore attuale delle posizioni aperte. Tutti partono da {STARTING_BALANCE} crediti.
+            Balance + current value of open positions. Everyone starts with {STARTING_BALANCE.toLocaleString("en-US")} credits.
           </p>
         </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border bg-card">
         {rows.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">Ancora nessun giocatore.</p>
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">No players yet.</p>
         )}
         {rows.map((r, i) => {
           const pnl = Number(r.total_value) - STARTING_BALANCE;
@@ -57,7 +57,7 @@ export default async function LeaderboardPage() {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{r.username}</p>
                 <p className="text-xs text-muted-foreground">
-                  Saldo {formatCredits(r.balance)} · Posizioni {formatCredits(r.positions_value)}
+                  Balance {formatCredits(r.balance)} · Positions {formatCredits(r.positions_value)}
                 </p>
               </div>
               <div className="text-right">

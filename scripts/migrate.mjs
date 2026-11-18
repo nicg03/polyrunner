@@ -1,5 +1,5 @@
-// Applica in ordine le migration in db/migrations non ancora eseguite.
-// Con SEED_DEMO=true carica anche db/seed.sql se il database non ha ancora gare.
+// Applies pending migrations in db/migrations, in order.
+// With SEED_DEMO=true it also loads db/seed.sql if the database has no races yet.
 import fs from "node:fs";
 import path from "node:path";
 import pg from "pg";
@@ -7,7 +7,7 @@ import pg from "pg";
 const root = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "db");
 
 if (!process.env.DATABASE_URL) {
-  console.error("DATABASE_URL non impostata");
+  console.error("DATABASE_URL is not set");
   process.exit(1);
 }
 
@@ -33,7 +33,7 @@ try {
   for (const file of files) {
     if (applied.has(file)) continue;
     const sql = fs.readFileSync(path.join(root, "migrations", file), "utf8");
-    console.log(`Applico ${file}...`);
+    console.log(`Applying ${file}...`);
     await client.query("begin");
     try {
       await client.query(sql);
@@ -48,12 +48,12 @@ try {
   if (process.env.SEED_DEMO === "true") {
     const { rows } = await client.query("select count(*)::int as n from races");
     if (rows[0].n === 0) {
-      console.log("Carico i dati di esempio...");
+      console.log("Loading demo data...");
       await client.query(fs.readFileSync(path.join(root, "seed.sql"), "utf8"));
     }
   }
 
-  console.log("Database aggiornato.");
+  console.log("Database up to date.");
 } finally {
   await client.end();
 }

@@ -1,4 +1,4 @@
-// Stesse formule delle funzioni SQL buy_shares / sell_shares, usate per l'anteprima lato client.
+// Same formulas as the SQL functions buy_shares / sell_shares, used for client-side previews.
 
 export function prices(q: number[], b: number): number[] {
   const max = Math.max(...q);

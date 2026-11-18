@@ -10,12 +10,12 @@ const MARKET_SELECT = `
             from outcomes o where o.market_id = m.id) as outcomes
     from markets m
     join races r on r.id = m.race_id
-    join athletes a on a.id = m.athlete_id
+    left join athletes a on a.id = m.athlete_id
 `;
 
 export async function getMarkets(opts: { raceId?: string } = {}) {
   return query<MarketWithRelations>(
-    `${MARKET_SELECT} where ($1::uuid is null or m.race_id = $1::uuid) order by m.closes_at nulls last`,
+    `${MARKET_SELECT} where ($1::uuid is null or m.race_id = $1::uuid) order by m.closes_at nulls last, m.kind desc, m.created_at`,
     [opts.raceId ?? null],
   );
 }

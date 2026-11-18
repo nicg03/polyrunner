@@ -1,4 +1,4 @@
-// "mm:ss" oppure "h:mm:ss" -> secondi. Restituisce null se il formato non è valido.
+// "mm:ss" or "h:mm:ss" -> seconds. Returns null if the format is invalid.
 export function parseTime(input: string): number | null {
   const parts = input.trim().split(":");
   if (parts.length < 2 || parts.length > 3) return null;
@@ -30,7 +30,7 @@ export interface BucketDraft {
   max_seconds: number | null;
 }
 
-// Soglie ordinate -> fasce: "< t0", "t0 - t1", ..., "> tn".
+// Sorted thresholds -> brackets: "< t0", "t0 - t1", ..., "> tn".
 export function bucketsFromThresholds(thresholds: number[]): BucketDraft[] {
   const sorted = [...new Set(thresholds)].sort((a, b) => a - b);
   if (sorted.length === 0) return [];

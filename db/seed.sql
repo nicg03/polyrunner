@@ -1,5 +1,5 @@
--- Dati di esempio: tre gare e un gruppo di amici.
--- Caricati automaticamente al primo deploy se SEED_DEMO=true (vedi scripts/migrate.mjs).
+-- Demo data: three races and a group of friends.
+-- Loaded automatically on first deploy when SEED_DEMO=true (see scripts/migrate.mjs).
 
 do $$
 declare
@@ -13,27 +13,27 @@ declare
   v_nicco uuid;
 begin
   insert into races (name, starts_at, distance_km, location)
-  values ('Milano Marathon 2027', '2027-04-11 09:00:00+02', 42.195, 'Milano')
+  values ('Milano Marathon 2027', '2027-04-11 09:00:00+02', 42.195, 'Milan')
   returning id into v_milano;
 
   insert into races (name, starts_at, distance_km, location)
-  values ('Stramilano Half 2027', '2027-03-21 09:30:00+01', 21.097, 'Milano')
+  values ('Stramilano Half 2027', '2027-03-21 09:30:00+01', 21.097, 'Milan')
   returning id into v_stramilano;
 
   insert into races (name, starts_at, distance_km, location)
-  values ('10K del Parco', '2026-12-13 10:00:00+01', 10, 'Parco Sempione')
+  values ('10K in the Park', '2026-12-13 10:00:00+01', 10, 'Sempione Park')
   returning id into v_parco;
 
   insert into athletes (name, personal_best_seconds, bio)
-  values ('Marco', 12600, 'Maratoneta della domenica, PB 3:30:00') returning id into v_marco;
+  values ('Marco', 12600, 'Weekend marathoner, PB 3:30:00') returning id into v_marco;
   insert into athletes (name, personal_best_seconds, bio)
-  values ('Giulia', 11400, 'Ex mezzofondista, PB 3:10:00') returning id into v_giulia;
+  values ('Giulia', 11400, 'Former middle-distance runner, PB 3:10:00') returning id into v_giulia;
   insert into athletes (name, personal_best_seconds, bio)
-  values ('Luca', 14400, 'Prima maratona, tanta fiducia') returning id into v_luca;
+  values ('Luca', 14400, 'First marathon, plenty of confidence') returning id into v_luca;
   insert into athletes (name, personal_best_seconds, bio)
-  values ('Sara', 5700, 'Specialista della mezza, PB 1:35:00') returning id into v_sara;
+  values ('Sara', 5700, 'Half marathon specialist, PB 1:35:00') returning id into v_sara;
   insert into athletes (name, personal_best_seconds, bio)
-  values ('Nicco', 2580, 'Veloce sui 10K, PB 43:00') returning id into v_nicco;
+  values ('Nicco', 2580, 'Fast over 10K, PB 43:00') returning id into v_nicco;
 
   perform create_market(v_milano, v_marco, 100, null, '[
     {"label": "< 3:15:00", "min_seconds": null, "max_seconds": 11700, "prob": 0.10},
@@ -69,5 +69,8 @@ begin
     {"label": "44:00 - 46:00", "min_seconds": 2640, "max_seconds": 2760, "prob": 0.20},
     {"label": "> 46:00", "min_seconds": 2760, "max_seconds": null, "prob": 0.10}
   ]'::jsonb);
+
+  perform create_custom_market(v_milano, v_luca, 'Will Luca stop to walk at any point?', 100, null, 0.6);
+  perform create_custom_market(v_milano, v_marco, 'Will Marco finish ahead of Giulia?', 100, null, 0.3);
 end;
 $$;

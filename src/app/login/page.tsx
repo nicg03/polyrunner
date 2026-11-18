@@ -1,16 +1,16 @@
 import { Suspense } from "react";
 import { LoginForm } from "./login-form";
 
-export const metadata = { title: "Accedi · PolyRunner" };
+export const metadata = { title: "Log in · PolyRunner" };
 
 export default function LoginPage() {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6 py-16">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold">Entra in PolyRunner</h1>
+        <h1 className="text-2xl font-semibold">Join PolyRunner</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Scegli un nickname e una password. Alla registrazione ricevi 1000
-          crediti virtuali.
+          Pick a username and a password. You get 1,000 virtual credits when
+          you sign up.
         </p>
       </div>
       <Suspense>

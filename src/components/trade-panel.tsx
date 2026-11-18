@@ -26,6 +26,7 @@ export function TradePanel({
   positions,
   isOpen,
   isLoggedIn,
+  isYesNo = false,
 }: {
   outcomes: TradeOutcome[];
   b: number;
@@ -35,6 +36,7 @@ export function TradePanel({
   positions: Record<string, number>;
   isOpen: boolean;
   isLoggedIn: boolean;
+  isYesNo?: boolean;
 }) {
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [value, setValue] = useState("");
@@ -71,7 +73,7 @@ export function TradePanel({
           : await sellShares(outcome.id, Math.min(amount, owned));
       if (res?.error) toast.error(res.error);
       else {
-        toast.success(res?.ok ?? "Operazione completata");
+        toast.success(res?.ok ?? "Done");
         setValue("");
       }
     });
@@ -96,13 +98,13 @@ export function TradePanel({
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
-            {s === "buy" ? "Compra" : "Vendi"}
+            {s === "buy" ? "Buy" : "Sell"}
           </button>
         ))}
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs text-muted-foreground">Fascia</span>
+        <span className="text-xs text-muted-foreground">{isYesNo ? "Outcome" : "Time bracket"}</span>
         <div className="grid grid-cols-2 gap-2">
           {outcomes.map((o, i) => (
             <button
@@ -110,13 +112,17 @@ export function TradePanel({
               onClick={() => onSelect(i)}
               className={cn(
                 "flex flex-col items-start rounded-lg border px-2.5 py-2 text-left text-xs transition-colors",
-                i === selected
-                  ? "border-yes bg-yes/15 text-foreground"
-                  : "bg-muted/40 text-muted-foreground hover:bg-muted",
+                i !== selected && "bg-muted/40 text-muted-foreground hover:bg-muted",
+                i === selected &&
+                  (isYesNo && i === 1
+                    ? "border-no bg-no/15 text-foreground"
+                    : "border-yes bg-yes/15 text-foreground"),
               )}
             >
               <span className="truncate font-medium">{o.label}</span>
-              <span className={i === selected ? "text-yes" : ""}>{formatCents(o.price)}</span>
+              <span className={i === selected ? (isYesNo && i === 1 ? "text-no" : "text-yes") : ""}>
+                {formatCents(o.price)}
+              </span>
             </button>
           ))}
         </div>
@@ -124,9 +130,9 @@ export function TradePanel({
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{side === "buy" ? "Importo (crediti)" : "Quote da vendere"}</span>
-          {side === "buy" && balance !== null && <span>Saldo: {formatCredits(balance)}</span>}
-          {side === "sell" && <span>Possiedi: {owned.toFixed(2)}</span>}
+          <span>{side === "buy" ? "Amount (credits)" : "Shares to sell"}</span>
+          {side === "buy" && balance !== null && <span>Balance: {formatCredits(balance)}</span>}
+          {side === "sell" && <span>You hold: {owned.toFixed(2)}</span>}
         </div>
         <Input
           inputMode="decimal"
@@ -162,29 +168,29 @@ export function TradePanel({
 
       {preview && (
         <dl className="flex flex-col gap-1.5 text-sm">
-          <Row label="Prezzo medio" value={formatCents(preview.avg)} />
-          <Row label="Quote" value={preview.shares.toFixed(2)} />
+          <Row label="Avg. price" value={formatCents(preview.avg)} />
+          <Row label="Shares" value={preview.shares.toFixed(2)} />
           <Row
-            label="Nuova probabilità"
+            label="New probability"
             value={`${formatPercent(outcome.price)} → ${formatPercent(preview.newPrice)}`}
           />
           {"payout" in preview && preview.payout !== undefined ? (
             <Row
-              label="Vincita potenziale"
+              label="Potential payout"
               value={`${formatCredits(preview.payout)} (+${Math.round(
                 ((preview.payout - amount) / amount) * 100,
               )}%)`}
               highlight
             />
           ) : (
-            <Row label="Ricevi" value={formatCredits(preview.proceeds ?? 0)} highlight />
+            <Row label="You receive" value={formatCredits(preview.proceeds ?? 0)} highlight />
           )}
         </dl>
       )}
 
       {!isLoggedIn ? (
         <Link href="/login" className={buttonVariants({ size: "lg", className: "h-11" })}>
-          Accedi per giocare
+          Log in to trade
         </Link>
       ) : (
         <Button
@@ -197,21 +203,21 @@ export function TradePanel({
           onClick={submit}
         >
           {!isOpen
-            ? "Mercato chiuso"
+            ? "Market closed"
             : insufficient
               ? side === "buy"
-                ? "Saldo insufficiente"
-                : "Quote insufficienti"
+                ? "Insufficient balance"
+                : "Not enough shares"
               : pending
-                ? "Invio..."
+                ? "Submitting..."
                 : side === "buy"
-                  ? `Compra ${outcome.label}`
-                  : `Vendi ${outcome.label}`}
+                  ? `Buy ${outcome.label}`
+                  : `Sell ${outcome.label}`}
         </Button>
       )}
 
       <p className="text-center text-[11px] text-muted-foreground">
-        Se la fascia è corretta ogni quota vale 1 credito. Crediti virtuali, solo per gioco.
+        Each share pays 1 credit if this outcome wins. Virtual credits, just for fun.
       </p>
     </div>
   );

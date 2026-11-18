@@ -1,5 +1,6 @@
 export type RaceStatus = "upcoming" | "closed" | "resolved";
 export type MarketStatus = "open" | "closed" | "resolved";
+export type MarketKind = "time" | "custom";
 
 export interface Profile {
   id: string;
@@ -41,7 +42,9 @@ export interface Outcome {
 export interface Market {
   id: string;
   race_id: string;
-  athlete_id: string;
+  athlete_id: string | null;
+  kind: MarketKind;
+  question: string | null;
   liquidity_b: number;
   status: MarketStatus;
   closes_at: string | null;
@@ -53,7 +56,7 @@ export interface Market {
 
 export interface MarketWithRelations extends Market {
   race: Race;
-  athlete: Athlete;
+  athlete: Athlete | null;
   outcomes: Outcome[];
 }
 

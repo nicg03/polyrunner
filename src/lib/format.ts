@@ -1,9 +1,9 @@
-const credits = new Intl.NumberFormat("it-IT", {
+const credits = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
 
-const compact = new Intl.NumberFormat("it-IT", {
+const compact = new Intl.NumberFormat("en-US", {
   notation: "compact",
   maximumFractionDigits: 1,
 });
@@ -28,7 +28,7 @@ export function formatCents(price: number): string {
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("it-IT", {
+  return new Date(iso).toLocaleDateString("en-US", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -36,7 +36,7 @@ export function formatDate(iso: string): string {
 }
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("it-IT", {
+  return new Date(iso).toLocaleString("en-US", {
     day: "numeric",
     month: "short",
     hour: "2-digit",
@@ -44,7 +44,7 @@ export function formatDateTime(iso: string): string {
   });
 }
 
-const rtf = new Intl.RelativeTimeFormat("it", { numeric: "auto" });
+const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
 export function formatRelative(iso: string, now = Date.now()): string {
   const diffSec = (new Date(iso).getTime() - now) / 1000;

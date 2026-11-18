@@ -23,6 +23,8 @@ export const OUTCOME_COLORS = [
   "#eb5757",
 ];
 
+export const YES_NO_COLORS = ["#27ae60", "#e64800"];
+
 interface ChartOutcome {
   id: string;
   label: string;
@@ -32,9 +34,11 @@ interface ChartOutcome {
 export function PriceChart({
   outcomes,
   snapshots,
+  colors = OUTCOME_COLORS,
 }: {
   outcomes: ChartOutcome[];
   snapshots: PriceSnapshot[];
+  colors?: string[];
 }) {
   const data = useMemo(() => {
     const byTime = new Map<number, Record<string, number>>();
@@ -58,7 +62,7 @@ export function PriceChart({
           <span key={o.id} className="flex items-center gap-1.5">
             <span
               className="size-2 rounded-full"
-              style={{ backgroundColor: OUTCOME_COLORS[i % OUTCOME_COLORS.length] }}
+              style={{ backgroundColor: colors[i % colors.length] }}
             />
             <span className="text-muted-foreground">{o.label}</span>
             <span className="font-semibold">{Math.round(o.price * 100)}%</span>
@@ -75,7 +79,7 @@ export function PriceChart({
               scale="time"
               domain={["dataMin", "dataMax"]}
               tickFormatter={(t) =>
-                new Date(t).toLocaleDateString("it-IT", { day: "numeric", month: "short" })
+                new Date(t).toLocaleDateString("en-US", { day: "numeric", month: "short" })
               }
               stroke="var(--muted-foreground)"
               fontSize={11}
@@ -98,7 +102,7 @@ export function PriceChart({
                 borderRadius: 8,
                 fontSize: 12,
               }}
-              labelFormatter={(t) => new Date(Number(t)).toLocaleString("it-IT")}
+              labelFormatter={(t) => new Date(Number(t)).toLocaleString("en-US")}
               formatter={(value, name) => [`${value}%`, labelFor(String(name))]}
             />
             {outcomes.map((o, i) => (
@@ -106,7 +110,7 @@ export function PriceChart({
                 key={o.id}
                 dataKey={o.id}
                 type="stepAfter"
-                stroke={OUTCOME_COLORS[i % OUTCOME_COLORS.length]}
+                stroke={colors[i % colors.length]}
                 strokeWidth={2}
                 dot={false}
                 connectNulls
