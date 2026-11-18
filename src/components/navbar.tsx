@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Footprints, Plus, Trophy, UserPlus, Wallet, Shield } from "lucide-react";
+import { Footprints, Plus, Trophy, User, UserPlus, Wallet, Shield } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getCurrentProfile } from "@/lib/auth";
@@ -45,19 +45,21 @@ export async function Navbar() {
               <Link href="/create" className={buttonVariants({ size: "sm" })}>
                 <Plus /> <span className="hidden sm:inline">Create bet</span>
               </Link>
-              <Link
-                href="/portfolio"
-                className="flex flex-col items-end leading-tight hover:opacity-80"
-              >
+              <Link href="/wallet" className="flex flex-col items-end leading-tight hover:opacity-80">
                 <span className="text-xs text-muted-foreground">Balance</span>
                 <span className="text-sm font-semibold text-yes">
                   {formatCredits(profile.balance)}
                 </span>
               </Link>
-              <Link href="/portfolio" className={buttonVariants({ variant: "outline", size: "sm" })}>
-                <Wallet /> <span className="hidden sm:inline">Portfolio</span>
+              <Link href="/wallet" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <Wallet /> <span className="hidden sm:inline">Wallet</span>
               </Link>
-              <Avatar name={profile.username} url={profile.avatar_url} />
+              <Link href="/profile" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                <User /> <span className="hidden sm:inline">Profile</span>
+              </Link>
+              <Link href="/profile">
+                <Avatar name={profile.username} url={profile.avatar_url} />
+              </Link>
               <form action={logout}>
                 <button className="text-xs text-muted-foreground hover:text-foreground">
                   Log out

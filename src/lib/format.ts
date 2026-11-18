@@ -12,6 +12,16 @@ export function formatCredits(value: number): string {
   return credits.format(Number(value));
 }
 
+export function stakeUnit(stake: "credits" | "beer", n = 2): string {
+  if (stake === "beer") return n === 1 ? "beer" : "beers";
+  return n === 1 ? "credit" : "credits";
+}
+
+export function formatStake(value: number, stake: "credits" | "beer" = "credits"): string {
+  const n = Number(value);
+  return `${credits.format(n)} ${stakeUnit(stake, Math.abs(n) === 1 ? 1 : 2)}`;
+}
+
 export function formatVolume(value: number): string {
   return compact.format(Number(value));
 }

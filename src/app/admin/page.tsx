@@ -9,11 +9,12 @@ import {
   CustomMarketForm,
   MarketAdminRow,
   MarketForm,
+  PbClaimsPanel,
   RaceForm,
   StravaLinkRow,
   type StravaUser,
 } from "./forms";
-import type { Athlete, MarketKind, Race, ResultClaim, StravaResult } from "@/lib/types";
+import type { Athlete, MarketKind, PbClaim, Race, ResultClaim, StravaResult } from "@/lib/types";
 
 export const metadata = { title: "Admin · PolyRunner" };
 
@@ -52,7 +53,7 @@ export default async function AdminPage() {
   const stravaStatus = await getStravaSetupStatus();
   const isStravaConfigured = stravaStatus.source !== null;
 
-  const [races, athletes, markets, stravaUsers] = await Promise.all([
+  const [races, athletes, markets, stravaUsers, pbClaims] = await Promise.all([
     query<Race>("select * from races order by starts_at desc"),
     query<Athlete & { user_id: string | null }>("select * from athletes order by name"),
     query<AdminMarket>(
@@ -84,6 +85,14 @@ export default async function AdminPage() {
             order by u.username`,
         )
       : Promise.resolve([]),
+    query<PbClaim>(
+      `select c.id, c.athlete_id, u.username, c.distance_km, c.time_seconds,
+              c.evidence_kind, c.evidence_url, c.note, c.status, c.created_at
+         from pb_claims c
+         join users u on u.id = c.user_id
+        where c.status = 'pending'
+        order by c.created_at`,
+    ),
   ]);
 
   return (
@@ -93,6 +102,19 @@ export default async function AdminPage() {
       <Panel title="Strava setup">
         <StravaSetup status={stravaStatus} origin={origin} />
       </Panel>
+
+      {pbClaims.length > 0 && (
+        <section className="rounded-xl border bg-card">
+          <div className="border-b px-4 py-3">
+            <h2 className="font-medium">Personal bests to verify ({pbClaims.length})</h2>
+            <p className="text-xs text-muted-foreground">
+              Check the proof, then accept to publish the PB on the runner&apos;s profile (used to
+              seed market odds).
+            </p>
+          </div>
+          <PbClaimsPanel claims={pbClaims} />
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel title="New race">

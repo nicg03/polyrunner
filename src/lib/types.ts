@@ -1,6 +1,8 @@
 export type RaceStatus = "upcoming" | "closed" | "resolved";
 export type MarketStatus = "open" | "closed" | "resolved";
 export type MarketKind = "time" | "custom";
+/** What's at stake: same wallet either way; beer is the social label among friends. */
+export type MarketStake = "credits" | "beer";
 
 export interface Profile {
   id: string;
@@ -48,6 +50,7 @@ export interface Market {
   race_id: string;
   athlete_id: string | null;
   kind: MarketKind;
+  stake: MarketStake;
   question: string | null;
   liquidity_b: number;
   status: MarketStatus;
@@ -80,6 +83,20 @@ export interface ResultClaim {
   id: string;
   market_id: string;
   username: string;
+  time_seconds: number;
+  evidence_kind: EvidenceKind;
+  evidence_url: string | null;
+  note: string | null;
+  status: ClaimStatus;
+  created_at: string;
+}
+
+/** A personal-best claim waiting for (or already through) admin review. */
+export interface PbClaim {
+  id: string;
+  athlete_id: string;
+  username: string;
+  distance_km: number;
   time_seconds: number;
   evidence_kind: EvidenceKind;
   evidence_url: string | null;

@@ -61,7 +61,7 @@ export function StravaCard({
           Disconnect
         </Button>
       ) : configured ? (
-        <StravaButton href="/api/strava/connect?next=/portfolio">Connect with Strava</StravaButton>
+        <StravaButton href="/api/strava/connect?next=/profile">Connect with Strava</StravaButton>
       ) : isAdmin ? (
         <Link href="/admin" className="text-sm font-medium text-primary hover:underline">
           Set up Strava in Admin

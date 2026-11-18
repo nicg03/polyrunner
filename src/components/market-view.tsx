@@ -16,6 +16,7 @@ import {
   formatPercent,
   formatRelative,
   formatVolume,
+  stakeUnit,
 } from "@/lib/format";
 import { formatPace, formatTime } from "@/lib/time";
 import type { Athlete, ClaimStatus, EvidenceKind, Market, PriceSnapshot, Race } from "@/lib/types";
@@ -103,7 +104,14 @@ export function MarketView({
             </Link>
             <h1 className="text-2xl font-semibold leading-tight">{marketTitle(market, athlete)}</h1>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span>{formatVolume(market.volume)} credits vol.</span>
+              <span>
+                {formatVolume(market.volume)} {stakeUnit(market.stake ?? "credits")} vol.
+              </span>
+              {market.stake === "beer" && (
+                <span className="rounded bg-amber-600/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">
+                  BEER
+                </span>
+              )}
               <span className="flex items-center gap-1">
                 <Ruler className="size-3" /> {Number(race.distance_km)} km
               </span>
@@ -293,6 +301,7 @@ export function MarketView({
             isOpen={isOpen}
             isLoggedIn={isLoggedIn}
             isYesNo={isCustom}
+            stake={market.stake ?? "credits"}
           />
         )}
       </div>

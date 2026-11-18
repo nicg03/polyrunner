@@ -49,3 +49,34 @@ export function bucketsFromThresholds(thresholds: number[]): BucketDraft[] {
   buckets.push({ label: `> ${formatTime(last)}`, min_seconds: last, max_seconds: null });
   return buckets;
 }
+
+/** Suggested finish-time thresholds around a verified personal best (race day ≈ PB + 3%). */
+export function thresholdsAroundPersonalBest(pbSeconds: number): number[] {
+  const expected = pbSeconds * 1.03;
+  return [0.97, 1.0, 1.05, 1.12].map((m) => Math.max(1, Math.round(expected * m)));
+}
+
+/**
+ * Soft peak of probability around the expected finish time (PB × 1.03).
+ * Brackets far from that time get lower weight so markets don't start flat.
+ */
+export function probsAroundPersonalBest(
+  buckets: BucketDraft[],
+  pbSeconds: number,
+): { label: string; min_seconds: number | null; max_seconds: number | null; prob: number }[] {
+  const expected = pbSeconds * 1.03;
+  const sigma = Math.max(expected * 0.06, 30);
+  const weights = buckets.map((b) => {
+    const mid =
+      b.min_seconds != null && b.max_seconds != null
+        ? (b.min_seconds + b.max_seconds) / 2
+        : b.max_seconds != null
+          ? b.max_seconds * 0.97
+          : b.min_seconds != null
+            ? b.min_seconds * 1.03
+            : expected;
+    return Math.exp(-0.5 * ((mid - expected) / sigma) ** 2);
+  });
+  const sum = weights.reduce((a, b) => a + b, 0) || 1;
+  return buckets.map((b, i) => ({ ...b, prob: weights[i] / sum }));
+}

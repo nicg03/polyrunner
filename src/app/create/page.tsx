@@ -20,50 +20,60 @@ export default async function CreatePage({
   if (!profile) redirect("/login?next=/create");
 
   const { athlete } = await searchParams;
-  const [friends, races] = await Promise.all([
+  const [allFriends, races, pbRows] = await Promise.all([
     getFriends(profile.id),
     query<Race>("select * from races where starts_at > now() order by starts_at"),
+    query<{ athlete_id: string; distance_km: number; time_seconds: number }>(
+      `select athlete_id, distance_km, time_seconds from athlete_pbs
+        where athlete_id in (select id from athletes where user_id = $1
+          or id in (
+            select a.id from athletes a
+              join friendships f on f.status = 'accepted'
+               and ((f.user_low = $1 and f.user_high = a.user_id)
+                 or (f.user_high = $1 and f.user_low = a.user_id))
+          ))`,
+      [profile.id],
+    ),
   ]);
-  const joined = friends.some((f) => f.user_id === profile.id);
-  const following = friends.filter((f) => f.user_id !== profile.id);
+  const me = allFriends.find((f) => f.user_id === profile.id) ?? null;
+  const friends = allFriends.filter((f) => f.user_id !== profile.id);
+  const pbs: Record<string, { distance_km: number; time_seconds: number }[]> = {};
+  for (const row of pbRows) {
+    (pbs[row.athlete_id] ??= []).push(row);
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-6">
       <div>
         <h1 className="text-2xl font-semibold">Create a bet</h1>
         <p className="text-sm text-muted-foreground">
-          Open a market on a friend&apos;s next race. Everyone starts trading right away.
+          Open a market on your race or a friend&apos;s. Everyone starts trading right away.
         </p>
       </div>
 
       <section className="rounded-xl border bg-card p-5">
-        {friends.length === 0 ? (
+        {!me && friends.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center text-sm">
-            <p className="font-medium">No friends yet</p>
+            <p className="font-medium">Nothing to bet on yet</p>
             <p className="max-w-sm text-muted-foreground">
-              Find runners by name or username, add them as friends, then create a bet. You can also
-              join as a runner so others can bet on you.
+              Join as a runner to bet on yourself, or find friends and wait until they accept your
+              request.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
-              <Link href="/friends" className={buttonVariants()}>
+              <JoinRunnerButton />
+              <Link href="/friends" className={buttonVariants({ variant: "outline" })}>
                 <UserPlus /> Find friends
               </Link>
-              {!joined && <JoinRunnerButton variant="outline" />}
             </div>
           </div>
         ) : (
-          <>
-            {following.length === 0 && (
-              <p className="mb-4 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">
-                You&apos;re only betting on yourself for now.{" "}
-                <Link href="/friends" className="font-medium text-primary hover:underline">
-                  Find friends
-                </Link>{" "}
-                to open markets on their races.
-              </p>
-            )}
-            <CreateBetForm friends={friends} races={races} initialAthleteId={athlete} />
-          </>
+          <CreateBetForm
+            me={me}
+            friends={friends}
+            races={races}
+            initialAthleteId={athlete}
+            pbs={pbs}
+          />
         )}
       </section>
     </div>

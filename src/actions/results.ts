@@ -3,24 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
+import { parseEvidence } from "@/lib/evidence";
 import { parseTime } from "@/lib/time";
 import type { ActionResult, EvidenceKind } from "@/lib/types";
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
-const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const STRAVA_URL = /^https:\/\/((www\.)?strava\.com\/activities\/\d+|strava\.app\.link\/\w+)/i;
-
 function str(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
-}
-
-function httpUrl(value: string) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
 }
 
 export async function submitResult(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
@@ -43,28 +31,9 @@ export async function submitResult(_prev: ActionResult, formData: FormData): Pro
     if (!seconds) throw new Error("Invalid time (use mm:ss or h:mm:ss)");
 
     const kind = str(formData, "evidence_kind") as EvidenceKind;
-    let url: string | null = null;
-    let photo: Buffer | null = null;
-    let photoType: string | null = null;
-
-    if (kind === "strava") {
-      url = str(formData, "evidence_url");
-      if (!STRAVA_URL.test(url)) throw new Error("Paste the link of the Strava activity");
-    } else if (kind === "official") {
-      url = httpUrl(str(formData, "evidence_url"));
-      if (!url) throw new Error("Paste the link of the official results page");
-    } else if (kind === "photo") {
-      const file = formData.get("photo");
-      if (!(file instanceof File) || file.size === 0) throw new Error("Add a photo of your watch");
-      if (!PHOTO_TYPES.has(file.type)) throw new Error("Use a JPG, PNG or WebP photo");
-      if (file.size > MAX_PHOTO_BYTES) throw new Error("The photo is too large (max 5 MB)");
-      photo = Buffer.from(await file.arrayBuffer());
-      photoType = file.type;
-    } else {
-      throw new Error("Pick a type of proof");
-    }
-
+    const { evidence_url, photo, photo_type } = await parseEvidence(formData, kind);
     const note = str(formData, "note").slice(0, 280) || null;
+
     await query(
       `insert into result_claims (market_id, user_id, time_seconds, evidence_kind, evidence_url, photo, photo_type, note)
        values ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -76,7 +45,7 @@ export async function submitResult(_prev: ActionResult, formData: FormData): Pro
          photo_type = excluded.photo_type,
          note = excluded.note,
          created_at = now()`,
-      [marketId, profile.id, seconds, kind, url, photo, photoType, note],
+      [marketId, profile.id, seconds, kind, evidence_url, photo, photo_type, note],
     );
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Could not submit the result" };

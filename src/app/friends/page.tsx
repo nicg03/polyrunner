@@ -7,9 +7,15 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCurrentProfile } from "@/lib/auth";
 import { queryOne } from "@/lib/db";
-import { getFriends, searchRunners, type RunnerResult } from "@/lib/queries";
+import {
+  getFriends,
+  getIncomingFriendRequests,
+  searchRunners,
+  type IncomingRequest,
+  type RunnerResult,
+} from "@/lib/queries";
 import type { Athlete } from "@/lib/types";
-import { CopyInviteLink, FriendButton } from "./friend-buttons";
+import { CopyInviteLink, FriendButton, IncomingRequestButtons } from "./friend-buttons";
 
 export const metadata = { title: "Friends · PolyRunner" };
 
@@ -22,9 +28,10 @@ export default async function FriendsPage({ searchParams }: { searchParams: Prom
     redirect(`/login?next=${encodeURIComponent(next)}`);
   }
 
-  const [friends, results, me] = await Promise.all([
+  const [friends, results, incoming, me] = await Promise.all([
     getFriends(profile.id),
     searchRunners(search, profile.id),
+    getIncomingFriendRequests(profile.id),
     queryOne<{ id: string }>("select id from athletes where user_id = $1", [profile.id]),
   ]);
   const following = friends.filter((f) => f.user_id !== profile.id);
@@ -34,8 +41,8 @@ export default async function FriendsPage({ searchParams }: { searchParams: Prom
       <div>
         <h1 className="text-2xl font-semibold">Friends</h1>
         <p className="text-sm text-muted-foreground">
-          Search runners by name or username and add them. Only people you add show up in your
-          Friends section and when you create a bet.
+          Search runners and send a request. Both of you must accept before you show up in each
+          other&apos;s Friends section and bets.
         </p>
       </div>
 
@@ -47,6 +54,17 @@ export default async function FriendsPage({ searchParams }: { searchParams: Prom
         </p>
         {me ? <CopyInviteLink path={`/friends?q=${encodeURIComponent(profile.username)}`} /> : <JoinRunnerButton />}
       </section>
+
+      {incoming.length > 0 && (
+        <section className="flex flex-col rounded-xl border border-primary/40 bg-card">
+          <h2 className="border-b px-4 py-3 font-medium">
+            Friend requests ({incoming.length})
+          </h2>
+          {incoming.map((r) => (
+            <IncomingRow key={r.user_id} request={r} />
+          ))}
+        </section>
+      )}
 
       <section className="flex flex-col rounded-xl border bg-card">
         <form className="flex gap-2 border-b p-3" action="/friends">
@@ -88,12 +106,25 @@ export default async function FriendsPage({ searchParams }: { searchParams: Prom
         <h2 className="border-b px-4 py-3 font-medium">Your friends ({following.length})</h2>
         {following.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            You haven&apos;t added anyone yet. Search for a runner above.
+            You haven&apos;t added anyone yet. Search for a runner above and wait for them to accept.
           </p>
         ) : (
           following.map((f) => <FriendRow key={f.id} friend={f} />)
         )}
       </section>
+    </div>
+  );
+}
+
+function IncomingRow({ request }: { request: IncomingRequest }) {
+  return (
+    <div className="flex items-center gap-3 border-b px-4 py-2.5 last:border-b-0">
+      <Avatar name={request.athlete_name ?? request.username} url={request.avatar_url} size={36} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium">{request.athlete_name ?? request.username}</p>
+        <p className="truncate text-xs text-muted-foreground">@{request.username}</p>
+      </div>
+      <IncomingRequestButtons fromUserId={request.user_id} />
     </div>
   );
 }
@@ -106,10 +137,10 @@ function RunnerRow({ runner }: { runner: RunnerResult }) {
         <p className="truncate font-medium">{runner.name}</p>
         <p className="truncate text-xs text-muted-foreground">
           {runner.username && runner.username !== runner.name ? `@${runner.username} · ` : ""}
-          {runner.followers} {runner.followers === 1 ? "friend" : "friends"}
+          {runner.friends_count} {runner.friends_count === 1 ? "friend" : "friends"}
         </p>
       </div>
-      <FriendButton athleteId={runner.id} following={runner.following} />
+      <FriendButton athleteId={runner.id} status={runner.friendship} />
     </div>
   );
 }
@@ -122,7 +153,7 @@ function FriendRow({ friend }: { friend: Athlete }) {
       <Link href={`/create?athlete=${friend.id}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
         Create a bet
       </Link>
-      <FriendButton athleteId={friend.id} following />
+      <FriendButton athleteId={friend.id} status="friends" />
     </div>
   );
 }

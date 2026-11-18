@@ -38,7 +38,8 @@ export default async function HomePage({
   const markets = allMarkets.filter(
     (m) =>
       (status === "resolved" ? m.status === "resolved" : m.status !== "resolved") &&
-      (!type || m.kind === type) &&
+      (!type ||
+        (type === "beer" ? m.stake === "beer" : m.kind === type)) &&
       (!category || m.athlete?.category === category) &&
       (category !== "friend" || friendIds.has(m.athlete!.id)),
   );
@@ -113,6 +114,9 @@ export default async function HomePage({
         <Link href={href({ section, race, status, type: "custom" })} className={chip(type === "custom")}>
           Yes / No
         </Link>
+        <Link href={href({ section, race, status, type: "beer" })} className={chip(type === "beer")}>
+          Beer
+        </Link>
         <div className="ml-auto flex gap-2">
           <Link href={href({ section, race, type, status: "open" })} className={chip(status !== "resolved")}>
             Active
@@ -161,7 +165,7 @@ function FriendsStrip({ friends, invite }: { friends: Athlete[]; invite: "signup
           <p className="text-sm text-muted-foreground">
             {invite === "signup"
               ? "Log in to see your friends and bet on their races."
-              : "No friends yet. Find the runners you know and add them."}
+              : "No friends yet. Find runners, send a request, and wait until they accept."}
           </p>
         ) : (
           friends.map((f) => (

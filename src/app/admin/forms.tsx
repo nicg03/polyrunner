@@ -23,12 +23,14 @@ import {
   resolveMarket,
   resolveMarketOutcome,
 } from "@/actions/admin";
-import { bucketsFromThresholds, formatTime, parseTime } from "@/lib/time";
+import { acceptPbClaim, rejectPbClaim } from "@/actions/profile";
+import { bucketsFromThresholds, formatPace, formatTime, parseTime } from "@/lib/time";
 import type {
   ActionResult,
   Athlete,
   EvidenceKind,
   MarketKind,
+  PbClaim,
   Race,
   ResultClaim,
   StravaResult,
@@ -359,6 +361,78 @@ const EVIDENCE_LABELS: Record<EvidenceKind, string> = {
   official: "Open official results",
   photo: "Open watch photo",
 };
+
+export function PbClaimsPanel({ claims }: { claims: PbClaim[] }) {
+  const [pending, startTransition] = useTransition();
+
+  function runAction(fn: () => Promise<ActionResult>) {
+    startTransition(async () => {
+      const res = await fn();
+      if (res?.error) toast.error(res.error);
+      else if (res?.ok) toast.success(res.ok);
+    });
+  }
+
+  return (
+    <>
+      {claims.map((claim) => {
+        const href =
+          claim.evidence_kind === "photo" ? `/api/pb-claims/${claim.id}/photo` : claim.evidence_url!;
+        return (
+          <div
+            key={claim.id}
+            className="flex w-full flex-wrap items-center gap-3 border-b px-4 py-3 last:border-b-0"
+          >
+            {claim.evidence_kind === "photo" && (
+              <a href={href} target="_blank" rel="noreferrer" className="shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={href} alt="Watch" className="size-14 rounded-md object-cover" />
+              </a>
+            )}
+            <div className="min-w-0 flex-1 text-sm">
+              <p className="font-semibold">
+                {claim.username}: {Number(claim.distance_km)} km in {formatTime(claim.time_seconds)}{" "}
+                <span className="font-normal text-muted-foreground">
+                  ({formatPace(claim.time_seconds, Number(claim.distance_km))})
+                </span>
+              </p>
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                className="block truncate text-xs font-medium text-primary hover:underline"
+              >
+                {EVIDENCE_LABELS[claim.evidence_kind]}
+                {claim.evidence_url ? ` · ${claim.evidence_url}` : ""}
+              </a>
+              {claim.note && <p className="text-xs text-muted-foreground">“{claim.note}”</p>}
+            </div>
+            <Button
+              size="sm"
+              disabled={pending}
+              className="bg-yes text-white hover:bg-yes/85"
+              onClick={() => {
+                if (confirm(`Verify ${formatTime(claim.time_seconds)} on ${Number(claim.distance_km)} km?`)) {
+                  runAction(() => acceptPbClaim(claim.id));
+                }
+              }}
+            >
+              Accept
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={() => runAction(() => rejectPbClaim(claim.id))}
+            >
+              Reject
+            </Button>
+          </div>
+        );
+      })}
+    </>
+  );
+}
 
 function ClaimRow({
   claim,

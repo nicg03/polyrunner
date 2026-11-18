@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     response.cookies.delete({ name: STATE_COOKIE, path: "/api/strava" });
     return response;
   };
-  const failPath = profile ? "/portfolio" : "/login";
+  const failPath = profile ? "/profile" : "/login";
 
   if (!state || state !== params.get("state")) return finish(failPath, "error");
   if (params.get("error")) return finish(failPath, "denied");
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     if (profile) {
       await saveAccount(profile.id, token, scope);
-      return finish(next || "/portfolio", "connected");
+      return finish(next || "/profile", "connected");
     }
 
     const existingUserId = await findUserByStravaId(token.athlete.id);

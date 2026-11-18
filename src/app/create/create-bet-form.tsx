@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Clock, HelpCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Beer, Clock, Coins, HelpCircle, User, Users } from "lucide-react";
 import { createFriendBet } from "@/actions/markets";
 import { ActionForm } from "@/components/action-form";
 import { Avatar } from "@/components/avatar";
@@ -10,8 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDate } from "@/lib/format";
-import { bucketsFromThresholds, parseTime } from "@/lib/time";
-import type { Athlete, MarketKind, Race } from "@/lib/types";
+import {
+  bucketsFromThresholds,
+  formatTime,
+  parseTime,
+  thresholdsAroundPersonalBest,
+} from "@/lib/time";
+import type { Athlete, MarketKind, MarketStake, Race } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const selectClass =
@@ -27,22 +32,61 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export function CreateBetForm({
+  me,
   friends,
   races,
   initialAthleteId,
+  pbs,
 }: {
+  me: Athlete | null;
   friends: Athlete[];
   races: Race[];
   initialAthleteId?: string;
+  /** Verified PBs keyed by athlete id. */
+  pbs: Record<string, { distance_km: number; time_seconds: number }[]>;
 }) {
+  const initialIsFriend = friends.some((f) => f.id === initialAthleteId);
+  const initialIsMe = me?.id === initialAthleteId;
+  const [target, setTarget] = useState<"yourself" | "friend">(
+    initialIsFriend ? "friend" : me ? "yourself" : "friend",
+  );
   const [athleteId, setAthleteId] = useState(
-    friends.some((f) => f.id === initialAthleteId) ? initialAthleteId! : "",
+    initialIsMe ? me!.id : initialIsFriend ? initialAthleteId! : me?.id ?? friends[0]?.id ?? "",
   );
   const [raceId, setRaceId] = useState(races[0]?.id ?? "new");
+  const [newDistance, setNewDistance] = useState("21.1");
   const [kind, setKind] = useState<MarketKind>("time");
+  const [stake, setStake] = useState<MarketStake>("credits");
   const [thresholds, setThresholds] = useState("3:30:00, 3:45:00, 4:00:00");
+  const [seededFromPb, setSeededFromPb] = useState(false);
 
-  const friend = friends.find((f) => f.id === athleteId);
+  const raceDistance =
+    raceId === "new"
+      ? Number(newDistance.replace(",", ".")) || null
+      : Number(races.find((r) => r.id === raceId)?.distance_km) || null;
+
+  const selected =
+    target === "yourself" ? me : friends.find((f) => f.id === athleteId) ?? null;
+
+  useEffect(() => {
+    if (target === "yourself" && me) setAthleteId(me.id);
+  }, [target, me]);
+
+  useEffect(() => {
+    if (!selected || !raceDistance || !(raceDistance > 0)) {
+      setSeededFromPb(false);
+      return;
+    }
+    const list = pbs[selected.id] ?? [];
+    const pb = list.find((p) => Math.abs(p.distance_km - raceDistance) / raceDistance <= 0.02);
+    if (!pb) {
+      setSeededFromPb(false);
+      return;
+    }
+    setThresholds(thresholdsAroundPersonalBest(pb.time_seconds).map(formatTime).join(", "));
+    setSeededFromPb(true);
+  }, [selected, raceDistance, pbs]);
+
   const buckets = useMemo(() => {
     const secs = thresholds.split(",").map((s) => parseTime(s.trim()));
     return secs.some((s) => s === null) ? [] : bucketsFromThresholds(secs as number[]);
@@ -52,27 +96,66 @@ export function CreateBetForm({
     <ActionForm action={createFriendBet} resetOnSuccess={false} className="flex flex-col gap-5">
       {(pending) => (
         <>
-          <Field label="Friend">
-            <div className="flex flex-wrap gap-2">
-              {friends.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setAthleteId(f.id)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm transition-colors",
-                    athleteId === f.id
-                      ? "border-primary bg-primary/15"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  <Avatar name={f.name} url={f.avatar_url} size={24} />
-                  {f.name}
-                </button>
-              ))}
+          <Field label="Runner">
+            <div className="grid grid-cols-2 gap-2">
+              <KindButton
+                active={target === "yourself"}
+                onClick={() => setTarget("yourself")}
+                disabled={!me}
+              >
+                <User className="size-4" /> Yourself
+              </KindButton>
+              <KindButton
+                active={target === "friend"}
+                onClick={() => {
+                  setTarget("friend");
+                  if (!friends.some((f) => f.id === athleteId)) setAthleteId(friends[0]?.id ?? "");
+                }}
+                disabled={friends.length === 0}
+              >
+                <Users className="size-4" /> Other friend
+              </KindButton>
             </div>
-            <input type="hidden" name="athlete_id" value={athleteId} />
+            {!me && (
+              <p className="text-xs text-muted-foreground">
+                Join as a runner first to create a bet on yourself.
+              </p>
+            )}
+            {friends.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Add friends (and wait for them to accept) to bet on someone else.
+              </p>
+            )}
           </Field>
+
+          {target === "friend" && friends.length > 0 && (
+            <Field label="Which friend">
+              <div className="flex flex-wrap gap-2">
+                {friends.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setAthleteId(f.id)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm transition-colors",
+                      athleteId === f.id
+                        ? "border-primary bg-primary/15"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <Avatar name={f.name} url={f.avatar_url} size={24} />
+                    {f.name}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          )}
+
+          <input
+            type="hidden"
+            name="athlete_id"
+            value={target === "yourself" ? (me?.id ?? "") : athleteId}
+          />
 
           <Field label="Race">
             <select
@@ -83,7 +166,7 @@ export function CreateBetForm({
             >
               {races.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.name} · {formatDate(r.starts_at)}
+                  {r.name} · {formatDate(r.starts_at)} · {Number(r.distance_km)} km
                 </option>
               ))}
               <option value="new">+ New race</option>
@@ -99,7 +182,14 @@ export function CreateBetForm({
                 <LocalDateTime name="new_race_starts_at" required />
               </Field>
               <Field label="Distance (km)">
-                <Input name="new_race_distance_km" required inputMode="decimal" placeholder="21.1" />
+                <Input
+                  name="new_race_distance_km"
+                  required
+                  inputMode="decimal"
+                  value={newDistance}
+                  onChange={(e) => setNewDistance(e.target.value)}
+                  placeholder="21.1"
+                />
               </Field>
               <Field label="Location (optional)">
                 <Input name="new_race_location" placeholder="Milan" />
@@ -119,9 +209,35 @@ export function CreateBetForm({
             <input type="hidden" name="kind" value={kind} />
           </Field>
 
+          <Field label="What's at stake">
+            <div className="grid grid-cols-2 gap-2">
+              <KindButton active={stake === "credits"} onClick={() => setStake("credits")}>
+                <Coins className="size-4" /> Credits
+              </KindButton>
+              <KindButton active={stake === "beer"} onClick={() => setStake("beer")}>
+                <Beer className="size-4" /> Beer
+              </KindButton>
+            </div>
+            <input type="hidden" name="stake" value={stake} />
+            <p className="text-xs text-muted-foreground">
+              {stake === "beer"
+                ? "Same wallet as credits (1 beer = 1 credit), labeled as beers so the loser owes a round among friends."
+                : "Classic PolyRunner credits."}
+            </p>
+          </Field>
+
           {kind === "time" ? (
             <Field label="Time thresholds, comma separated (mm:ss or h:mm:ss)">
-              <Input name="thresholds" value={thresholds} onChange={(e) => setThresholds(e.target.value)} />
+              <Input name="thresholds" value={thresholds} onChange={(e) => {
+                setThresholds(e.target.value);
+                setSeededFromPb(false);
+              }} />
+              {seededFromPb && (
+                <p className="text-xs text-yes">
+                  Suggested from {selected?.name}&apos;s verified personal best. Opening odds will
+                  peak around that time, not flat 25% each.
+                </p>
+              )}
               {buckets.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {buckets.map((b) => (
@@ -142,7 +258,7 @@ export function CreateBetForm({
                   required
                   minLength={5}
                   maxLength={140}
-                  placeholder={`Will ${friend?.name ?? "Marco"} stop to walk at any point?`}
+                  placeholder={`Will ${selected?.name ?? "Marco"} stop to walk at any point?`}
                 />
               </Field>
               <Field label="Initial Yes %">
@@ -152,12 +268,19 @@ export function CreateBetForm({
           )}
 
           <p className="text-xs text-muted-foreground">
-            Trading closes when the race starts. After the race, {friend?.name ?? "your friend"}{" "}
-            submits the finish time with a proof (Strava link, watch photo or official results) and
-            an admin verifies it.
+            Trading closes when the race starts. After the race, {selected?.name ?? "the runner"}{" "}
+            submits the finish time with a proof and an admin verifies it.
           </p>
 
-          <Button type="submit" size="lg" disabled={pending || !athleteId}>
+          <Button
+            type="submit"
+            size="lg"
+            disabled={
+              pending ||
+              (target === "yourself" ? !me : !athleteId) ||
+              (kind === "time" && buckets.length < 2)
+            }
+          >
             {pending ? "Creating..." : "Create bet"}
           </Button>
         </>
@@ -170,17 +293,20 @@ function KindButton({
   active,
   onClick,
   children,
+  disabled,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={cn(
-        "flex items-center justify-center gap-2 rounded-lg border py-2 text-sm font-medium transition-colors",
+        "flex items-center justify-center gap-2 rounded-lg border py-2 text-sm font-medium transition-colors disabled:opacity-40",
         active ? "border-primary bg-primary/15" : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >

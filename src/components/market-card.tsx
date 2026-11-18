@@ -3,7 +3,7 @@ import { Clock, CheckCircle2, HelpCircle } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { outcomePrices } from "@/lib/lmsr";
 import { marketTitle } from "@/lib/markets";
-import { formatPercent, formatRelative, formatVolume } from "@/lib/format";
+import { formatPercent, formatRelative, formatVolume, stakeUnit } from "@/lib/format";
 import { formatTime } from "@/lib/time";
 import type { MarketWithRelations } from "@/lib/types";
 
@@ -37,6 +37,9 @@ export function MarketCard({ market }: { market: MarketWithRelations }) {
           <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
             {market.athlete?.category === "pro" && (
               <span className="rounded bg-amber-400/15 px-1 text-[10px] font-semibold text-amber-400">PRO</span>
+            )}
+            {market.stake === "beer" && (
+              <span className="rounded bg-amber-600/15 px-1 text-[10px] font-semibold text-amber-600">BEER</span>
             )}
             {market.race.name}
           </p>
@@ -88,7 +91,9 @@ export function MarketCard({ market }: { market: MarketWithRelations }) {
       )}
 
       <div className="mt-auto flex items-center justify-between pt-1 text-xs text-muted-foreground">
-        <span>{formatVolume(market.volume)} credits vol.</span>
+        <span>
+          {formatVolume(market.volume)} {stakeUnit(market.stake ?? "credits")} vol.
+        </span>
         {resolved ? (
           <span>Resolved</span>
         ) : isClosed ? (

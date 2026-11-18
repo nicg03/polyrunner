@@ -16,10 +16,16 @@ Every outcome trades between 0 and 100 cents, and the price is its implied proba
 
 Markets are grouped in two sections:
 
-- **Friends**: athletes who are PolyRunner users. Click **"Join as a runner"** (Friends section or
-  portfolio) or connect Strava to appear in search. Other users find you on `/friends` by name or
-  username, add you, and then create a bet from `/create`. Each user only sees the people they
-  added; each can create up to 10 bets a day.
+- **Friends**: athletes who are PolyRunner users. Click **"Join as a runner"** (Profile) or connect
+  Strava to appear in search. Other users find you on `/friends` by name or username and send a
+  request; **both must accept**. Then either of you can create a bet from `/create` (Yourself or
+  Other friend). The leaderboard is limited to you and your accepted friends. Each user can create
+  up to 10 bets a day.
+- **Profile** (`/profile`): personal bests with proof (Strava / photo / official results), verified
+  by an admin. Verified PBs seed the opening odds of finish-time markets on that distance.
+- **Wallet** (`/wallet`): balances, open positions and trade history (formerly Portfolio).
+- **Stake**: each bet can be in **credits** or **beers** (same wallet: 1 beer = 1 credit; beer is the
+  social label so friends can settle a round in real life).
 - **Pros**: athletes created by the admin with the "Pro" section (elite runners, race winners...),
   resolved by hand with the official result.
 
@@ -35,8 +41,8 @@ Markets are grouped in two sections:
 Finish-time results don't depend on Strava. Once the race has started, any logged-in user can
 open the market and **submit the finish time with a proof**: a link to the Strava activity, a
 photo of the watch (stored in the database, max 5 MB, shrunk in the browser), or a link to the
-official results page. Runners see a reminder for each race waiting for a result in their
-portfolio.
+official results page. Runners see a reminder for each race waiting for a result on their
+profile.
 
 Pending results show up under the market in `/admin`. The admin opens the proof and clicks
 **Accept** (the market settles with that time and the proof is shown publicly on the market page)
@@ -64,8 +70,8 @@ and resolve markets.
 ## Strava (optional)
 
 Strava is a shortcut on top of the submitted results above. Runners can connect Strava from their
-portfolio page. An admin links each athlete to the user who
-runs as them (`/admin` → Strava links). When that user records a run that starts within 1 hour
+profile page. An admin links each athlete to the user who runs as them (`/admin` → Strava links).
+When that user records a run that starts within 1 hour
 before / 8 hours after the race start and covers 95–110% of the race distance, it shows up under
 the market as a proposed result (elapsed time, distance, link to the activity). The admin accepts
 it to resolve the market, or dismisses it and enters the official time by hand. "Check Strava"
@@ -125,7 +131,9 @@ src/
     create/                create a bet on a Strava-connected friend
     races/[id]/            all markets for a race
     markets/[id]/          chart, outcomes, Buy/Sell panel, activity
-    portfolio/             positions, P&L, history
+    wallet/                balances, positions, P&L, history
+    profile/               runner status, personal bests, Strava
+    friends/               search, requests, mutual friends
     leaderboard/           rankings
     admin/                 races, athletes, markets and resolution
     login/                 sign up and log in

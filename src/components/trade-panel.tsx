@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { buyShares, sellShares } from "@/actions/trade";
 import { prices, proceedsForShares, sharesForAmount, withDelta } from "@/lib/lmsr";
-import { formatCents, formatCredits, formatPercent } from "@/lib/format";
+import { formatCents, formatStake, formatPercent, stakeUnit } from "@/lib/format";
+import type { MarketStake } from "@/lib/types";
 
 export interface TradeOutcome {
   id: string;
@@ -27,6 +28,7 @@ export function TradePanel({
   isOpen,
   isLoggedIn,
   isYesNo = false,
+  stake = "credits",
 }: {
   outcomes: TradeOutcome[];
   b: number;
@@ -37,6 +39,7 @@ export function TradePanel({
   isOpen: boolean;
   isLoggedIn: boolean;
   isYesNo?: boolean;
+  stake?: MarketStake;
 }) {
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [value, setValue] = useState("");
@@ -130,8 +133,10 @@ export function TradePanel({
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{side === "buy" ? "Amount (credits)" : "Shares to sell"}</span>
-          {side === "buy" && balance !== null && <span>Balance: {formatCredits(balance)}</span>}
+          <span>{side === "buy" ? `Amount (${stakeUnit(stake)})` : "Shares to sell"}</span>
+          {side === "buy" && balance !== null && (
+            <span>Balance: {formatStake(balance, stake)}</span>
+          )}
           {side === "sell" && <span>You hold: {owned.toFixed(2)}</span>}
         </div>
         <Input
@@ -177,13 +182,17 @@ export function TradePanel({
           {"payout" in preview && preview.payout !== undefined ? (
             <Row
               label="Potential payout"
-              value={`${formatCredits(preview.payout)} (+${Math.round(
+              value={`${formatStake(preview.payout, stake)} (+${Math.round(
                 ((preview.payout - amount) / amount) * 100,
               )}%)`}
               highlight
             />
           ) : (
-            <Row label="You receive" value={formatCredits(preview.proceeds ?? 0)} highlight />
+            <Row
+              label="You receive"
+              value={formatStake(preview.proceeds ?? 0, stake)}
+              highlight
+            />
           )}
         </dl>
       )}
@@ -217,7 +226,9 @@ export function TradePanel({
       )}
 
       <p className="text-center text-[11px] text-muted-foreground">
-        Each share pays 1 credit if this outcome wins. Virtual credits, just for fun.
+        {stake === "beer"
+          ? "Each share pays 1 beer if this outcome wins. 1 beer = 1 credit in your wallet — settle the round with friends in real life."
+          : "Each share pays 1 credit if this outcome wins. Virtual credits, just for fun."}
       </p>
     </div>
   );

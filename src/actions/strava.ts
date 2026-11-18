@@ -13,6 +13,6 @@ export async function disconnectStrava(): Promise<ActionResult> {
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Could not disconnect Strava" };
   }
-  revalidatePath("/portfolio");
+  revalidatePath("/profile");
   return { ok: "Strava disconnected" };
 }
