@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { disconnectStrava } from "@/actions/strava";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,13 @@ import { Button } from "@/components/ui/button";
 export function StravaCard({
   connectedAs,
   athleteName,
+  configured = true,
+  isAdmin = false,
 }: {
   connectedAs: string | null;
   athleteName: string | null;
+  configured?: boolean;
+  isAdmin?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -31,7 +36,11 @@ export function StravaCard({
           <>
             <p className="font-medium">Running in a race?</p>
             <p className="text-muted-foreground">
-              Connect Strava so friends can bet on you and your finish time settles the bets.
+              {configured
+                ? "Connect Strava so friends can bet on you and your finish time settles the bets. Beat your personal best (or stay within a minute of your last run) and you earn bonus credits."
+                : isAdmin
+                  ? "Strava is not configured yet: add your Strava API Client ID and Secret in the Admin page."
+                  : "Strava has not been set up by an admin yet."}
             </p>
           </>
         )}
@@ -51,8 +60,14 @@ export function StravaCard({
         >
           Disconnect
         </Button>
-      ) : (
+      ) : configured ? (
         <StravaButton href="/api/strava/connect?next=/portfolio">Connect with Strava</StravaButton>
+      ) : isAdmin ? (
+        <Link href="/admin" className="text-sm font-medium text-primary hover:underline">
+          Set up Strava in Admin
+        </Link>
+      ) : (
+        <span className="text-xs text-muted-foreground">Not available yet</span>
       )}
     </section>
   );

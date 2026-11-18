@@ -13,6 +13,18 @@ async function requireAdmin() {
   if (!profile?.is_admin) throw new Error("Only admins can do this");
 }
 
+/** Gives the linked athlete a bonus for a personal best or a steady run; returns a note for the toast. */
+async function awardBonus(marketId: string) {
+  const [reward] = await query<{ reward_kind: string; reward_amount: number }>(
+    "select * from award_athlete_bonus($1)",
+    [marketId],
+  );
+  if (!reward) return "";
+  return reward.reward_kind === "personal_best"
+    ? ` Personal best! The athlete earned ${reward.reward_amount} credits.`
+    : ` Steady run: the athlete earned ${reward.reward_amount} credits.`;
+}
+
 function str(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
@@ -131,7 +143,7 @@ export async function resolveMarket(_prev: ActionResult, formData: FormData): Pr
     if (!seconds) throw new Error("Invalid time (use mm:ss or h:mm:ss)");
 
     await query("select resolve_market($1, $2)", [marketId, seconds]);
-    return `Market resolved with a time of ${formatTime(seconds)}`;
+    return `Market resolved with a time of ${formatTime(seconds)}.${await awardBonus(marketId)}`;
   });
 }
 
@@ -192,7 +204,7 @@ export async function acceptStravaResult(resultId: string): Promise<ActionResult
         where market_id = $1 and status = 'pending'`,
       [result.market_id, resultId],
     );
-    return `Market resolved with a time of ${formatTime(result.elapsed_seconds)}`;
+    return `Market resolved with a time of ${formatTime(result.elapsed_seconds)}.${await awardBonus(result.market_id)}`;
   });
 }
 

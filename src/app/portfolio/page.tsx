@@ -105,9 +105,12 @@ export default async function PortfolioPage() {
         </div>
       </div>
 
-      {stravaEnabled && (
-        <StravaCard connectedAs={strava?.display_name ?? null} athleteName={strava?.athlete_name ?? null} />
-      )}
+      <StravaCard
+        connectedAs={strava?.display_name ?? null}
+        athleteName={strava?.athlete_name ?? null}
+        configured={stravaEnabled}
+        isAdmin={profile.is_admin}
+      />
 
       <div className="grid gap-4 sm:grid-cols-4">
         <Stat label="Available balance" value={formatCredits(profile.balance)} />

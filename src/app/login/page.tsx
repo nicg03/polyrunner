@@ -21,7 +21,7 @@ export default async function LoginPage({
         <p className="mt-2 text-sm text-muted-foreground">
           {stravaEnabled
             ? "Sign in with your Strava account: no password needed. You get 1,000 virtual credits when you join."
-            : "Pick a username and a password. You get 1,000 virtual credits when you sign up."}
+            : "Sign up with your email and a password. You get 1,000 virtual credits when you join."}
         </p>
       </div>
 
@@ -32,7 +32,7 @@ export default async function LoginPage({
           </StravaButton>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
-            or use a username and password
+            or use your email
             <span className="h-px flex-1 bg-border" />
           </div>
         </>

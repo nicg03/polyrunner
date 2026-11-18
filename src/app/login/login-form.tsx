@@ -44,16 +44,29 @@ export function LoginForm() {
             <>
               <input type="hidden" name="next" value={next} />
               <div className="flex flex-col gap-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="username"
-                  name="username"
+                  id="email"
+                  name="email"
+                  type={mode === "register" ? "email" : "text"}
                   required
-                  autoComplete="username"
-                  placeholder="e.g. gazelle_92"
-                  maxLength={24}
+                  autoComplete={mode === "login" ? "username" : "email"}
+                  placeholder="you@example.com"
                 />
               </div>
+              {mode === "register" && (
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    name="username"
+                    required
+                    autoComplete="nickname"
+                    placeholder="e.g. gazelle_92"
+                    maxLength={24}
+                  />
+                </div>
+              )}
               <div className="flex flex-col gap-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
