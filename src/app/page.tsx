@@ -3,13 +3,12 @@ import { LayoutGrid, Plus, Star, Users } from "lucide-react";
 import { MarketCard } from "@/components/market-card";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { Avatar } from "@/components/avatar";
+import { JoinRunnerButton } from "@/components/join-runner-button";
 import { SetupNotice } from "@/components/setup-notice";
-import { StravaButton } from "@/components/strava-card";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentProfile } from "@/lib/auth";
-import { isStravaConfigured } from "@/lib/strava";
 import { cn } from "@/lib/utils";
-import { getMarkets, getRaces, getStravaFriends, isUuid } from "@/lib/queries";
+import { getFriends, getMarkets, getRaces, isUuid } from "@/lib/queries";
 import { isDatabaseConfigured } from "@/lib/db";
 import type { Athlete } from "@/lib/types";
 
@@ -23,20 +22,17 @@ export default async function HomePage({
   if (!isDatabaseConfigured) return <SetupNotice />;
 
   const { race, status = "open", type, section } = await searchParams;
-  const [allMarkets, races, friends, profile, stravaEnabled] = await Promise.all([
+  const [allMarkets, races, friends, profile] = await Promise.all([
     getMarkets({ raceId: race && isUuid(race) ? race : undefined }),
     getRaces(),
-    getStravaFriends(),
+    getFriends(),
     getCurrentProfile(),
-    isStravaConfigured(),
   ]);
-  const stravaInvite = !stravaEnabled
-    ? null
-    : !profile
-      ? ("join" as const)
-      : friends.some((f) => f.user_id === profile.id)
-        ? null
-        : ("connect" as const);
+  const invite = !profile
+    ? ("signup" as const)
+    : friends.some((f) => f.user_id === profile.id)
+      ? null
+      : ("join" as const);
   const category = section === "friends" ? "friend" : section === "pros" ? "pro" : null;
   const markets = allMarkets.filter(
     (m) =>
@@ -92,7 +88,7 @@ export default async function HomePage({
         ))}
       </nav>
 
-      {section === "friends" && <FriendsStrip friends={friends} invite={stravaInvite} />}
+      {section === "friends" && <FriendsStrip friends={friends} invite={invite} />}
 
       <div className="flex flex-wrap items-center gap-2">
         <Link href={href({ section, status, type })} className={chip(!race)}>
@@ -153,13 +149,13 @@ const SECTIONS = [
   { id: "pros", label: "Pros", icon: Star },
 ];
 
-function FriendsStrip({ friends, invite }: { friends: Athlete[]; invite: "join" | "connect" | null }) {
+function FriendsStrip({ friends, invite }: { friends: Athlete[]; invite: "signup" | "join" | null }) {
   return (
     <section className="flex flex-wrap items-center gap-4 rounded-xl border bg-card p-4">
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
         {friends.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No friends on Strava yet. Be the first: connect yours and your friends can bet on you.
+            No runners yet. Be the first: join as a runner and your friends can bet on your races.
           </p>
         ) : (
           friends.map((f) => (
@@ -175,12 +171,13 @@ function FriendsStrip({ friends, invite }: { friends: Athlete[]; invite: "join" 
           ))
         )}
       </div>
-      {invite && (
-        <StravaButton href={`/api/strava/connect?next=${encodeURIComponent("/?section=friends")}`}>
-          {invite === "join" ? "Join with Strava" : "Connect Strava"}
-        </StravaButton>
+      {invite === "signup" && (
+        <Link href={`/login?next=${encodeURIComponent("/?section=friends")}`} className={buttonVariants()}>
+          Sign up to join
+        </Link>
       )}
-      {invite !== "join" && (
+      {invite === "join" && <JoinRunnerButton variant="outline" />}
+      {invite !== "signup" && (
         <Link href="/create" className={buttonVariants()}>
           <Plus /> Create a bet
         </Link>

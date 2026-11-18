@@ -28,16 +28,16 @@ export function StravaCard({
             <p className="font-medium">Connected to Strava as {connectedAs}</p>
             <p className="text-muted-foreground">
               {athleteName
-                ? `You're in the Friends section as ${athleteName}. Your race-day runs settle bets on you.`
+                ? "Your race-day runs are picked up automatically, no need to submit them by hand."
                 : "An admin still needs to link you to your athlete profile."}
             </p>
           </>
         ) : (
           <>
-            <p className="font-medium">Running in a race?</p>
+            <p className="font-medium">Strava (optional)</p>
             <p className="text-muted-foreground">
               {configured
-                ? "Connect Strava so friends can bet on you and your finish time settles the bets. Beat your personal best (or stay within a minute of your last run) and you earn bonus credits."
+                ? "Connect Strava and your race-day runs are found automatically, so you don't have to submit your time by hand."
                 : isAdmin
                   ? "Strava is not configured yet: add your Strava API Client ID and Secret in the Admin page."
                   : "Strava has not been set up by an admin yet."}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar } from "@/components/avatar";
+import { JoinRunnerButton } from "@/components/join-runner-button";
 import { StravaCard } from "@/components/strava-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCurrentProfile } from "@/lib/auth";
@@ -46,7 +47,19 @@ export default async function PortfolioPage() {
   if (!profile) redirect("/login?next=/portfolio");
 
   const stravaEnabled = await isStravaConfigured();
-  const [strava, positions, trades] = await Promise.all([
+  const [runner, toSubmit, strava, positions, trades] = await Promise.all([
+    queryOne<{ name: string }>("select name from athletes where user_id = $1", [profile.id]),
+    query<{ market_id: string; race_name: string; submitted: boolean }>(
+      `select m.id as market_id, r.name as race_name,
+              exists (select 1 from result_claims c
+                       where c.market_id = m.id and c.user_id = $1 and c.status = 'pending') as submitted
+         from markets m
+         join races r on r.id = m.race_id
+         join athletes a on a.id = m.athlete_id
+        where a.user_id = $1 and m.kind = 'time' and m.status <> 'resolved' and r.starts_at <= now()
+        order by r.starts_at desc`,
+      [profile.id],
+    ),
     stravaEnabled
       ? queryOne<{ display_name: string | null; athlete_name: string | null }>(
           `select coalesce(s.display_name, 'Strava athlete') as display_name,
@@ -104,6 +117,44 @@ export default async function PortfolioPage() {
           <p className="text-sm text-muted-foreground">Your portfolio</p>
         </div>
       </div>
+
+      <section className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-sm">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="min-w-0 flex-1">
+            {runner ? (
+              <>
+                <p className="font-medium">You&apos;re in the Friends section as {runner.name}</p>
+                <p className="text-muted-foreground">
+                  Anyone can bet on your races. After each race, submit your finish time with a proof:
+                  Strava link, photo of your watch or official results.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-medium">Running in a race?</p>
+                <p className="text-muted-foreground">
+                  Join as a runner so friends can bet on your finish times. Beat your personal best (or
+                  stay within a minute of your last run) and you earn bonus credits.
+                </p>
+              </>
+            )}
+          </div>
+          {!runner && <JoinRunnerButton />}
+        </div>
+        {toSubmit.map((m) => (
+          <Link
+            key={m.market_id}
+            href={`/markets/${m.market_id}#submit-result`}
+            className="flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 hover:bg-primary/15"
+          >
+            <span>
+              <b>{m.race_name}</b>:{" "}
+              {m.submitted ? "result submitted, waiting for an admin" : "submit your finish time"}
+            </span>
+            <span className="text-primary">{m.submitted ? "View" : "Submit"} →</span>
+          </Link>
+        ))}
+      </section>
 
       <StravaCard
         connectedAs={strava?.display_name ?? null}

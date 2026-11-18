@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  acceptResultClaim,
   acceptStravaResult,
   checkStrava,
   closeMarket,
@@ -17,12 +18,21 @@ import {
   createRace,
   dismissStravaResult,
   linkAthleteUser,
+  rejectResultClaim,
   reopenMarket,
   resolveMarket,
   resolveMarketOutcome,
 } from "@/actions/admin";
 import { bucketsFromThresholds, formatTime, parseTime } from "@/lib/time";
-import type { ActionResult, Athlete, MarketKind, Race, StravaResult } from "@/lib/types";
+import type {
+  ActionResult,
+  Athlete,
+  EvidenceKind,
+  MarketKind,
+  Race,
+  ResultClaim,
+  StravaResult,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const selectClass =
@@ -344,6 +354,65 @@ function StravaResultRow({
   );
 }
 
+const EVIDENCE_LABELS: Record<EvidenceKind, string> = {
+  strava: "Open Strava activity",
+  official: "Open official results",
+  photo: "Open watch photo",
+};
+
+function ClaimRow({
+  claim,
+  onAction,
+  pending,
+}: {
+  claim: ResultClaim;
+  onAction: (fn: () => Promise<ActionResult>) => void;
+  pending: boolean;
+}) {
+  const href = claim.evidence_kind === "photo" ? `/api/claims/${claim.id}/photo` : claim.evidence_url!;
+  return (
+    <div className="flex w-full flex-wrap items-center gap-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">
+      {claim.evidence_kind === "photo" && (
+        <a href={href} target="_blank" rel="noreferrer" className="shrink-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={href} alt="Watch" className="size-14 rounded-md object-cover" />
+        </a>
+      )}
+      <div className="min-w-0 flex-1">
+        <p>
+          <span className="font-semibold">Submitted: {formatTime(claim.time_seconds)}</span>{" "}
+          <span className="text-muted-foreground">by {claim.username}</span>
+        </p>
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="block truncate text-xs font-medium text-primary hover:underline"
+        >
+          {EVIDENCE_LABELS[claim.evidence_kind]}
+          {claim.evidence_url ? ` · ${claim.evidence_url}` : ""}
+        </a>
+        {claim.note && <p className="text-xs text-muted-foreground">“{claim.note}”</p>}
+      </div>
+      <Button
+        size="sm"
+        disabled={pending}
+        className="bg-yes text-white hover:bg-yes/85"
+        onClick={() => {
+          if (confirm(`Resolve with ${formatTime(claim.time_seconds)}? This cannot be undone.`)) {
+            onAction(() => acceptResultClaim(claim.id));
+          }
+        }}
+      >
+        Accept
+      </Button>
+      <Button size="sm" variant="outline" disabled={pending} onClick={() => onAction(() => rejectResultClaim(claim.id))}>
+        Reject
+      </Button>
+    </div>
+  );
+}
+
 export function MarketAdminRow({
   marketId,
   title,
@@ -353,6 +422,7 @@ export function MarketAdminRow({
   outcomes,
   stravaLinked,
   stravaResults,
+  claims,
 }: {
   marketId: string;
   title: string;
@@ -362,6 +432,7 @@ export function MarketAdminRow({
   outcomes: { id: string; label: string }[];
   stravaLinked: boolean;
   stravaResults: StravaResult[];
+  claims: ResultClaim[];
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -436,6 +507,9 @@ export function MarketAdminRow({
       )}
       {stravaResults.map((r) => (
         <StravaResultRow key={r.id} result={r} onAction={runAction} pending={pending} />
+      ))}
+      {claims.map((c) => (
+        <ClaimRow key={c.id} claim={c} onAction={runAction} pending={pending} />
       ))}
     </div>
   );

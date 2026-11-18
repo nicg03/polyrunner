@@ -24,14 +24,9 @@ export async function getMarket(id: string) {
   return queryOne<MarketWithRelations>(`${MARKET_SELECT} where m.id = $1`, [id]);
 }
 
-/** Friends you can create bets on: athletes whose user connected Strava, so results can be verified. */
-export async function getStravaFriends() {
-  return query<Athlete>(
-    `select a.* from athletes a
-       join strava_accounts s on s.user_id = a.user_id
-      where a.category = 'friend'
-      order by a.name`,
-  );
+/** Friends you can create bets on; their results are verified from a submitted proof. */
+export async function getFriends() {
+  return query<Athlete>("select * from athletes where category = 'friend' order by name");
 }
 
 export async function getRaces() {

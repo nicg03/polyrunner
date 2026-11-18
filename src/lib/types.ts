@@ -55,6 +55,7 @@ export interface Market {
   actual_time_seconds: number | null;
   winning_outcome_id: string | null;
   strava_activity_id: number | null;
+  result_claim_id: string | null;
   created_by: string | null;
   volume: number;
   created_at: string;
@@ -69,6 +70,22 @@ export interface StravaResult {
   moving_seconds: number | null;
   distance_m: number;
   start_date: string;
+}
+
+export type EvidenceKind = "strava" | "photo" | "official";
+export type ClaimStatus = "pending" | "accepted" | "rejected";
+
+/** A submitted finish time with its proof; the photo itself is served by /api/claims/[id]/photo. */
+export interface ResultClaim {
+  id: string;
+  market_id: string;
+  username: string;
+  time_seconds: number;
+  evidence_kind: EvidenceKind;
+  evidence_url: string | null;
+  note: string | null;
+  status: ClaimStatus;
+  created_at: string;
 }
 
 export interface MarketWithRelations extends Market {

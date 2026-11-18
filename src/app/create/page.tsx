@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
-import { StravaButton } from "@/components/strava-card";
+import { JoinRunnerButton } from "@/components/join-runner-button";
 import { getCurrentProfile } from "@/lib/auth";
-import { query, queryOne } from "@/lib/db";
-import { getStravaFriends } from "@/lib/queries";
-import { isStravaConfigured } from "@/lib/strava";
+import { query } from "@/lib/db";
+import { getFriends } from "@/lib/queries";
 import type { Race } from "@/lib/types";
 import { CreateBetForm } from "./create-bet-form";
 
@@ -18,12 +17,11 @@ export default async function CreatePage({
   if (!profile) redirect("/login?next=/create");
 
   const { athlete } = await searchParams;
-  const [friends, races, stravaEnabled, connected] = await Promise.all([
-    getStravaFriends(),
+  const [friends, races] = await Promise.all([
+    getFriends(),
     query<Race>("select * from races where starts_at > now() order by starts_at"),
-    isStravaConfigured(),
-    queryOne("select 1 from strava_accounts where user_id = $1", [profile.id]),
   ]);
+  const joined = friends.some((f) => f.user_id === profile.id);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-6">
@@ -37,14 +35,11 @@ export default async function CreatePage({
       <section className="rounded-xl border bg-card p-5">
         {friends.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center text-sm">
-            <p className="font-medium">No friends on Strava yet</p>
+            <p className="font-medium">No runners yet</p>
             <p className="max-w-sm text-muted-foreground">
-              Bets can only be created on friends who connected Strava, so their finish time can be
-              verified. Connect yours and invite your running buddies.
+              Join as a runner so friends can bet on your races, and invite your running buddies.
             </p>
-            {stravaEnabled && !connected && (
-              <StravaButton href="/api/strava/connect?next=/create">Connect with Strava</StravaButton>
-            )}
+            {!joined && <JoinRunnerButton />}
           </div>
         ) : (
           <CreateBetForm friends={friends} races={races} initialAthleteId={athlete} />

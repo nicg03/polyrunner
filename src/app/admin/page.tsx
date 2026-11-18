@@ -13,7 +13,7 @@ import {
   StravaLinkRow,
   type StravaUser,
 } from "./forms";
-import type { Athlete, MarketKind, Race, StravaResult } from "@/lib/types";
+import type { Athlete, MarketKind, Race, ResultClaim, StravaResult } from "@/lib/types";
 
 export const metadata = { title: "Admin · PolyRunner" };
 
@@ -26,6 +26,7 @@ interface AdminMarket {
   outcomes: { id: string; label: string }[];
   strava_linked: boolean;
   strava_results: StravaResult[];
+  claims: ResultClaim[];
 }
 
 export default async function AdminPage() {
@@ -62,7 +63,14 @@ export default async function AdminPage() {
               exists (select 1 from strava_accounts s where s.user_id = a.user_id) as strava_linked,
               (select coalesce(jsonb_agg(sr order by sr.created_at), '[]'::jsonb)
                  from strava_results sr
-                where sr.market_id = m.id and sr.status = 'pending') as strava_results
+                where sr.market_id = m.id and sr.status = 'pending') as strava_results,
+              (select coalesce(jsonb_agg(jsonb_build_object(
+                        'id', c.id, 'market_id', c.market_id, 'username', u.username,
+                        'time_seconds', c.time_seconds, 'evidence_kind', c.evidence_kind,
+                        'evidence_url', c.evidence_url, 'note', c.note, 'status', c.status,
+                        'created_at', c.created_at) order by c.created_at), '[]'::jsonb)
+                 from result_claims c join users u on u.id = c.user_id
+                where c.market_id = m.id and c.status = 'pending') as claims
          from markets m
          join races r on r.id = m.race_id
          left join athletes a on a.id = m.athlete_id
@@ -120,8 +128,9 @@ export default async function AdminPage() {
         <div className="border-b px-4 py-3">
           <h2 className="font-medium">Markets to resolve</h2>
           <p className="text-xs text-muted-foreground">
-            Finish-time markets: enter the official time (mm:ss or h:mm:ss). Yes/No markets: pick
-            the outcome. Winning shares pay 1 credit each.
+            Finish-time markets: check the submitted results and their proof, or enter the official
+            time (mm:ss or h:mm:ss). Yes/No markets: pick the outcome. Winning shares pay 1 credit
+            each.
           </p>
         </div>
         {markets.length === 0 ? (
@@ -138,6 +147,7 @@ export default async function AdminPage() {
               outcomes={m.outcomes}
               stravaLinked={isStravaConfigured && m.strava_linked}
               stravaResults={m.strava_results}
+              claims={m.claims}
             />
           ))
         )}

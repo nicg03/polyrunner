@@ -46,12 +46,10 @@ export async function createFriendBet(_prev: ActionResult, formData: FormData): 
   let marketId: string;
   try {
     const athlete = await queryOne<{ id: string }>(
-      `select a.id from athletes a
-         join strava_accounts s on s.user_id = a.user_id
-        where a.id = $1 and a.category = 'friend'`,
+      "select id from athletes where id = $1 and category = 'friend'",
       [str(formData, "athlete_id")],
     );
-    if (!athlete) throw new Error("Pick a friend who has connected Strava");
+    if (!athlete) throw new Error("Pick a friend");
 
     const [{ count }] = await query<{ count: number }>(
       "select count(*)::int as count from markets where created_by = $1 and created_at > now() - interval '1 day'",

@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { MarketView, type ActivityItem } from "@/components/market-view";
+import { MarketView, type ActivityItem, type VerifiedBy } from "@/components/market-view";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { getMarket, isUuid } from "@/lib/queries";
 import { outcomePrices } from "@/lib/lmsr";
 import { getCurrentProfile } from "@/lib/auth";
-import { query } from "@/lib/db";
-import type { PriceSnapshot } from "@/lib/types";
+import { query, queryOne } from "@/lib/db";
+import type { ClaimStatus, PriceSnapshot } from "@/lib/types";
 
 export default async function MarketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,7 +15,7 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
 
   const profile = await getCurrentProfile();
 
-  const [snapshots, trades, myPositions] = await Promise.all([
+  const [snapshots, trades, myPositions, myClaim, verifiedBy] = await Promise.all([
     query<PriceSnapshot>(
       `select outcome_id, price, created_at from price_snapshots
         where market_id = $1 order by created_at limit 5000`,
@@ -34,7 +34,20 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
           [id, profile.id],
         )
       : Promise.resolve([]),
+    profile && market.kind === "time" && market.status !== "resolved"
+      ? queryOne<{ status: ClaimStatus; time_seconds: number }>(
+          `select status, time_seconds from result_claims
+            where market_id = $1 and user_id = $2 order by created_at desc limit 1`,
+          [id, profile.id],
+        )
+      : null,
+    market.result_claim_id
+      ? queryOne<VerifiedBy>("select id, evidence_kind, evidence_url from result_claims where id = $1", [
+          market.result_claim_id,
+        ])
+      : null,
   ]);
+  const raceStarted = new Date(market.race.starts_at) <= new Date();
 
   const outcomes = outcomePrices(
     [...market.outcomes].sort((a, b) => a.sort_order - b.sort_order),
@@ -62,6 +75,12 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
         positions={positions}
         balance={profile ? Number(profile.balance) : null}
         isLoggedIn={Boolean(profile)}
+        verifiedBy={verifiedBy}
+        submitResult={
+          profile && market.kind === "time" && market.status !== "resolved" && raceStarted
+            ? { myClaim }
+            : null
+        }
       />
     </>
   );

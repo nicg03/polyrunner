@@ -16,10 +16,10 @@ Every outcome trades between 0 and 100 cents, and the price is its implied proba
 
 Markets are grouped in two sections:
 
-- **Friends**: athletes who are PolyRunner users. Connecting Strava adds you automatically, and
-  then **any logged-in user** can create a bet on you from `/create` (finish time or Yes/No, on an
-  existing race or a new one). Results come from your Strava activity, confirmed by an admin.
-  Each user can create up to 10 bets a day.
+- **Friends**: athletes who are PolyRunner users. Click **"Join as a runner"** (Friends section or
+  portfolio) or connect Strava, and then **any logged-in user** can create a bet on you from
+  `/create` (finish time or Yes/No, on an existing race or a new one). Each user can create up to
+  10 bets a day.
 - **Pros**: athletes created by the admin with the "Pro" section (elite runners, race winners...),
   resolved by hand with the official result.
 
@@ -29,6 +29,19 @@ Markets are grouped in two sections:
   always liquidity even with few players, and prices always add up to 100%.
 - After the race an admin enters the official time (finish-time markets) or picks the winning
   outcome (Yes/No markets), and payouts happen automatically.
+
+## Verifying results
+
+Finish-time results don't depend on Strava. Once the race has started, any logged-in user can
+open the market and **submit the finish time with a proof**: a link to the Strava activity, a
+photo of the watch (stored in the database, max 5 MB, shrunk in the browser), or a link to the
+official results page. Runners see a reminder for each race waiting for a result in their
+portfolio.
+
+Pending results show up under the market in `/admin`. The admin opens the proof and clicks
+**Accept** (the market settles with that time and the proof is shown publicly on the market page)
+or **Reject** (the submitter is told and can send a new one). Photos of pending or rejected
+results are only visible to admins and to whoever submitted them.
 
 ## Stack
 
@@ -48,9 +61,10 @@ update users set is_admin = true where username = 'username';
 From `/admin` you create races, athletes, finish-time markets and Yes/No markets, close trading
 and resolve markets.
 
-## Strava
+## Strava (optional)
 
-Runners can connect Strava from their portfolio page. An admin links each athlete to the user who
+Strava is a shortcut on top of the submitted results above. Runners can connect Strava from their
+portfolio page. An admin links each athlete to the user who
 runs as them (`/admin` → Strava links). When that user records a run that starts within 1 hour
 before / 8 hours after the race start and covers 95–110% of the race distance, it shows up under
 the market as a proposed result (elapsed time, distance, link to the activity). The admin accepts

@@ -152,8 +152,9 @@ export function CreateBetForm({
           )}
 
           <p className="text-xs text-muted-foreground">
-            Trading closes when the race starts. The result comes from{" "}
-            {`${friend?.name ?? "your friend"}'s`} Strava activity and is confirmed by an admin.
+            Trading closes when the race starts. After the race, {friend?.name ?? "your friend"}{" "}
+            submits the finish time with a proof (Strava link, watch photo or official results) and
+            an admin verifies it.
           </p>
 
           <Button type="submit" size="lg" disabled={pending || !athleteId}>

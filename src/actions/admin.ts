@@ -25,6 +25,13 @@ async function awardBonus(marketId: string) {
     : ` Steady run: the athlete earned ${reward.reward_amount} credits.`;
 }
 
+async function closePendingClaims(marketId: string) {
+  await query(
+    "update result_claims set status = 'rejected', reviewed_at = now() where market_id = $1 and status = 'pending'",
+    [marketId],
+  );
+}
+
 function str(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
@@ -143,6 +150,7 @@ export async function resolveMarket(_prev: ActionResult, formData: FormData): Pr
     if (!seconds) throw new Error("Invalid time (use mm:ss or h:mm:ss)");
 
     await query("select resolve_market($1, $2)", [marketId, seconds]);
+    await closePendingClaims(marketId);
     return `Market resolved with a time of ${formatTime(seconds)}.${await awardBonus(marketId)}`;
   });
 }
@@ -204,6 +212,7 @@ export async function acceptStravaResult(resultId: string): Promise<ActionResult
         where market_id = $1 and status = 'pending'`,
       [result.market_id, resultId],
     );
+    await closePendingClaims(result.market_id);
     return `Market resolved with a time of ${formatTime(result.elapsed_seconds)}.${await awardBonus(result.market_id)}`;
   });
 }
@@ -214,6 +223,43 @@ export async function dismissStravaResult(resultId: string): Promise<ActionResul
       resultId,
     ]);
     return "Strava result dismissed";
+  });
+}
+
+export async function acceptResultClaim(claimId: string): Promise<ActionResult> {
+  return run(async () => {
+    const profile = await getCurrentProfile();
+    const claim = await queryOne<{ market_id: string; time_seconds: number }>(
+      "select market_id, time_seconds from result_claims where id = $1 and status = 'pending'",
+      [claimId],
+    );
+    if (!claim) throw new Error("This result is no longer pending");
+
+    await query("select resolve_market($1, $2)", [claim.market_id, claim.time_seconds]);
+    await query("update markets set result_claim_id = $2 where id = $1", [claim.market_id, claimId]);
+    await query(
+      `update result_claims
+          set status = case when id = $2 then 'accepted' else 'rejected' end,
+              reviewed_by = $3, reviewed_at = now()
+        where market_id = $1 and status = 'pending'`,
+      [claim.market_id, claimId, profile?.id ?? null],
+    );
+    await query("update strava_results set status = 'dismissed' where market_id = $1 and status = 'pending'", [
+      claim.market_id,
+    ]);
+    return `Market resolved with a time of ${formatTime(claim.time_seconds)}.${await awardBonus(claim.market_id)}`;
+  });
+}
+
+export async function rejectResultClaim(claimId: string): Promise<ActionResult> {
+  return run(async () => {
+    const profile = await getCurrentProfile();
+    await query(
+      `update result_claims set status = 'rejected', reviewed_by = $2, reviewed_at = now()
+        where id = $1 and status = 'pending'`,
+      [claimId, profile?.id ?? null],
+    );
+    return "Result rejected";
   });
 }
 

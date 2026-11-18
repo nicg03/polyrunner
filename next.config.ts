@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    // Watch photos submitted as race results (capped at 5 MB in the action).
+    serverActions: { bodySizeLimit: "6mb" },
+  },
 };
 
 export default nextConfig;

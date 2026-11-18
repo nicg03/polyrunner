@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CheckCircle2, Clock, HelpCircle, MapPin, Ruler } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { PriceChart, OUTCOME_COLORS, YES_NO_COLORS } from "@/components/price-chart";
+import { SubmitResultForm } from "@/components/submit-result-form";
 import { TradePanel, type TradeOutcome } from "@/components/trade-panel";
 import { cn } from "@/lib/utils";
 import { marketTitle } from "@/lib/markets";
@@ -17,7 +18,7 @@ import {
   formatVolume,
 } from "@/lib/format";
 import { formatPace, formatTime } from "@/lib/time";
-import type { Athlete, Market, PriceSnapshot, Race } from "@/lib/types";
+import type { Athlete, ClaimStatus, EvidenceKind, Market, PriceSnapshot, Race } from "@/lib/types";
 
 export interface ActivityItem {
   id: number;
@@ -30,6 +31,18 @@ export interface ActivityItem {
   created_at: string;
 }
 
+export interface VerifiedBy {
+  id: string;
+  evidence_kind: EvidenceKind;
+  evidence_url: string | null;
+}
+
+const EVIDENCE_LINKS: Record<EvidenceKind, string> = {
+  strava: "Verified with Strava · View activity",
+  official: "Verified with the official results · View results",
+  photo: "Verified with a photo of the watch · View photo",
+};
+
 export function MarketView({
   market,
   race,
@@ -40,6 +53,8 @@ export function MarketView({
   positions,
   balance,
   isLoggedIn,
+  verifiedBy,
+  submitResult,
 }: {
   market: Market;
   race: Race;
@@ -50,6 +65,8 @@ export function MarketView({
   positions: Record<string, number>;
   balance: number | null;
   isLoggedIn: boolean;
+  verifiedBy: VerifiedBy | null;
+  submitResult: { myClaim: { status: ClaimStatus; time_seconds: number } | null } | null;
 }) {
   const isCustom = market.kind === "custom";
   const colors = isCustom ? YES_NO_COLORS : OUTCOME_COLORS;
@@ -119,7 +136,23 @@ export function MarketView({
                   </span>
                 </p>
                 <p className="text-sm text-muted-foreground">Winning bracket: {winner.label}</p>
-                {market.strava_activity_id && (
+                {verifiedBy ? (
+                  <a
+                    href={
+                      verifiedBy.evidence_kind === "photo"
+                        ? `/api/claims/${verifiedBy.id}/photo`
+                        : (verifiedBy.evidence_url ?? undefined)
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn(
+                      "mt-1 inline-block text-sm font-medium hover:underline",
+                      verifiedBy.evidence_kind === "strava" ? "text-[#fc5200]" : "text-primary",
+                    )}
+                  >
+                    {EVIDENCE_LINKS[verifiedBy.evidence_kind]}
+                  </a>
+                ) : market.strava_activity_id ? (
                   <a
                     href={`https://www.strava.com/activities/${market.strava_activity_id}`}
                     target="_blank"
@@ -128,12 +161,20 @@ export function MarketView({
                   >
                     Verified with Strava · View on Strava
                   </a>
-                )}
+                ) : null}
               </div>
             ) : (
               <p className="font-semibold">Resolved: {winner.label}</p>
             )}
           </div>
+        )}
+
+        {submitResult && (
+          <SubmitResultForm
+            marketId={market.id}
+            athleteName={athlete?.name ?? "the athlete"}
+            myClaim={submitResult.myClaim}
+          />
         )}
 
         <div className="rounded-xl border bg-card p-4">
