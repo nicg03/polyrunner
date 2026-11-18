@@ -29,7 +29,8 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export async function createSession(userId: string) {
+/** Stores a new session and returns the cookie to set, for callers that build their own response. */
+export async function newSessionCookie(userId: string) {
   const token = randomBytes(32).toString("base64url");
   const expires = new Date(Date.now() + SESSION_DAYS * 86400 * 1000);
   await query("insert into sessions (token_hash, user_id, expires_at) values ($1, $2, $3)", [
@@ -37,15 +38,20 @@ export async function createSession(userId: string) {
     userId,
     expires,
   ]);
-
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
+  return {
+    name: SESSION_COOKIE,
+    value: token,
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
     expires,
-  });
+  };
+}
+
+export async function createSession(userId: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(await newSessionCookie(userId));
 }
 
 export async function destroySession() {

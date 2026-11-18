@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { getCurrentProfile } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
-import { syncMarket } from "@/lib/strava";
+import { appOrigin, ensureWebhook, saveStravaCredentials, syncMarket } from "@/lib/strava";
 import { formatTime, parseTime } from "@/lib/time";
 import type { ActionResult } from "@/lib/types";
 
@@ -142,6 +143,27 @@ export async function linkAthleteUser(_prev: ActionResult, formData: FormData): 
     if (userId) await query("update athletes set user_id = null where user_id = $1", [userId]);
     await query("update athletes set user_id = $2 where id = $1", [athleteId, userId]);
     return userId ? "Athlete linked" : "Athlete unlinked";
+  });
+}
+
+export async function saveStravaSetup(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  return run(async () => {
+    const clientId = str(formData, "client_id");
+    const clientSecret = str(formData, "client_secret");
+    if (!/^\d+$/.test(clientId)) throw new Error("The Client ID is a number, e.g. 123456");
+    if (clientSecret.length < 20) throw new Error("The Client Secret looks too short");
+    const webhook = await saveStravaCredentials(clientId, clientSecret, appOrigin(await headers()));
+    return webhook
+      ? "Strava is connected. Friends can now sign in with Strava."
+      : "Credentials saved, but the automatic activity updates could not be enabled. Try again in a minute.";
+  });
+}
+
+export async function registerStravaWebhook(): Promise<ActionResult> {
+  return run(async () => {
+    const ok = await ensureWebhook(appOrigin(await headers()));
+    if (!ok) throw new Error("Strava did not accept the webhook. Try again in a minute.");
+    return "Automatic activity updates enabled";
   });
 }
 

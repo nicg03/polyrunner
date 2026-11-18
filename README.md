@@ -57,18 +57,16 @@ the market as a proposed result (elapsed time, distance, link to the activity). 
 it to resolve the market, or dismisses it and enters the official time by hand. "Check Strava"
 looks the activity up on demand if the webhook missed it.
 
-Setup:
+Friends sign in with **"Continue with Strava"** on the login page: no password, the account is
+created from their Strava profile and they land in the Friends section.
 
-1. Create an app at [strava.com/settings/api](https://www.strava.com/settings/api) with the
-   Authorization Callback Domain set to the site's domain.
-2. Set the web service variables (they stay out of the repo, `.railway/railway.ts` preserves them):
-   ```bash
-   railway variables --service web --set STRAVA_CLIENT_ID=... --set STRAVA_CLIENT_SECRET=...
-   ```
-3. Register the webhook once:
-   ```bash
-   STRAVA_CLIENT_ID=... STRAVA_CLIENT_SECRET=... APP_URL=https://... node scripts/strava-subscribe.mjs
-   ```
+Setup, all from the website: open `/admin` → **Strava setup** and follow the steps. It shows the
+values to paste in [strava.com/settings/api](https://www.strava.com/settings/api); then paste the
+Client ID and Client Secret back. The site checks them with Strava, stores them in the database
+(`app_settings`) and registers the activity webhook.
+
+`STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET` env vars still work and take precedence;
+`scripts/strava-subscribe.mjs` registers the webhook from the command line in that case.
 
 New Strava apps can only connect their owner until Strava approves a higher athlete capacity
 (request it from the app settings page).
@@ -99,7 +97,7 @@ Web service variables (defined in `.railway/railway.ts`):
 | `DATABASE_URL` | reference to `Postgres.DATABASE_URL` |
 | `SEED_DEMO` | `true`: loads demo races and athletes if the database is empty |
 | `APP_URL` | public URL, used for the Strava OAuth redirect |
-| `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` | from the Strava app; Strava features are hidden while unset |
+| `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` | optional: otherwise set from `/admin` → Strava setup |
 
 To change the infrastructure: edit `.railway/railway.ts`, then run `railway config plan` and
 `railway config apply`.
@@ -130,6 +128,7 @@ db/
     0002_custom_markets.sql Yes/No markets and outcome-based resolution
     0003_strava.sql        Strava accounts and proposed results
     0004_friends_pros.sql  athlete sections and user-created markets
+    0005_app_settings.sql  settings editable from the admin page
   seed.sql                 demo data
 scripts/migrate.mjs        migration runner
 .railway/railway.ts        Railway infrastructure

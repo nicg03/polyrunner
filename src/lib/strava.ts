@@ -5,10 +5,38 @@ import { query, queryOne } from "@/lib/db";
 const API = "https://www.strava.com/api/v3";
 const OAUTH = "https://www.strava.com/oauth";
 
-const CLIENT_ID = process.env.STRAVA_CLIENT_ID;
-const CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET;
+const SUBSCRIPTIONS = `${API}/push_subscriptions`;
 
-export const isStravaConfigured = Boolean(CLIENT_ID && CLIENT_SECRET);
+interface StravaConfig {
+  clientId: string;
+  clientSecret: string;
+  source: "env" | "admin";
+}
+
+/** Credentials from env vars if set, otherwise the ones saved from the admin page. */
+export async function getStravaConfig(): Promise<StravaConfig | null> {
+  const { STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET } = process.env;
+  if (STRAVA_CLIENT_ID && STRAVA_CLIENT_SECRET) {
+    return { clientId: STRAVA_CLIENT_ID, clientSecret: STRAVA_CLIENT_SECRET, source: "env" };
+  }
+  const rows = await query<{ key: string; value: string }>(
+    "select key, value from app_settings where key in ('strava_client_id', 'strava_client_secret')",
+  );
+  const get = (key: string) => rows.find((r) => r.key === key)?.value;
+  const clientId = get("strava_client_id");
+  const clientSecret = get("strava_client_secret");
+  return clientId && clientSecret ? { clientId, clientSecret, source: "admin" } : null;
+}
+
+async function requireConfig() {
+  const config = await getStravaConfig();
+  if (!config) throw new Error("Strava is not set up yet");
+  return config;
+}
+
+export async function isStravaConfigured() {
+  return (await getStravaConfig()) !== null;
+}
 
 export const STRAVA_SCOPE = "read,activity:read_all";
 export const STATE_COOKIE = "pr_strava_state";
@@ -47,9 +75,14 @@ interface AccountRow {
   expires_at: string;
 }
 
-/** Shared secret for the webhook handshake, derived so it needs no extra variable. */
-export function webhookVerifyToken() {
-  return createHash("sha256").update(`${CLIENT_SECRET}:webhook`).digest("hex").slice(0, 32);
+/** Shared secret for the webhook handshake, derived so it needs no extra setting. */
+function verifyTokenFor(clientSecret: string) {
+  return createHash("sha256").update(`${clientSecret}:webhook`).digest("hex").slice(0, 32);
+}
+
+export async function webhookVerifyToken() {
+  const config = await getStravaConfig();
+  return config ? verifyTokenFor(config.clientSecret) : null;
 }
 
 export function appOrigin(headers: Headers) {
@@ -59,9 +92,10 @@ export function appOrigin(headers: Headers) {
   return `${proto}://${host}`;
 }
 
-export function authorizeUrl(redirectUri: string, state: string) {
+export async function authorizeUrl(redirectUri: string, state: string) {
+  const { clientId } = await requireConfig();
   const params = new URLSearchParams({
-    client_id: CLIENT_ID ?? "",
+    client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
     approval_prompt: "auto",
@@ -72,24 +106,65 @@ export function authorizeUrl(redirectUri: string, state: string) {
 }
 
 async function tokenRequest(params: Record<string, string>): Promise<TokenResponse> {
+  const { clientId, clientSecret } = await requireConfig();
   const res = await fetch(`${OAUTH}/token`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: CLIENT_ID ?? "",
-      client_secret: CLIENT_SECRET ?? "",
-      ...params,
-    }),
+    body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, ...params }),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Strava token request failed (${res.status})`);
   return res.json();
 }
 
-export async function connectAccount(userId: string, code: string, scope: string) {
+export type StravaToken = TokenResponse & { athlete: NonNullable<TokenResponse["athlete"]> };
+
+export async function exchangeCode(code: string): Promise<StravaToken> {
   const token = await tokenRequest({ grant_type: "authorization_code", code });
   if (!token.athlete) throw new Error("Strava did not return an athlete");
-  const name = [token.athlete.firstname, token.athlete.lastname].filter(Boolean).join(" ");
+  return token as StravaToken;
+}
+
+function athleteName(token: StravaToken) {
+  return [token.athlete.firstname, token.athlete.lastname].filter(Boolean).join(" ");
+}
+
+export async function findUserByStravaId(stravaAthleteId: number) {
+  const row = await queryOne<{ user_id: string }>(
+    "select user_id from strava_accounts where strava_athlete_id = $1",
+    [stravaAthleteId],
+  );
+  return row?.user_id ?? null;
+}
+
+/** Signs up a new user from their Strava profile; they log in with Strava, not a password. */
+export async function createUserFromStrava(token: StravaToken) {
+  const base =
+    athleteName(token)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 20) || "runner";
+  const padded = base.length < 2 ? `${base}_runner` : base;
+
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const username = attempt === 0 ? padded : `${padded}${attempt + 1}`;
+    const user = await queryOne<{ id: string }>(
+      `insert into users (username, password_hash, is_admin)
+       select $1, 'strava', not exists (select 1 from users)
+        where not exists (select 1 from users where lower(username) = lower($1))
+       returning id`,
+      [username],
+    );
+    if (user) return user.id;
+  }
+  throw new Error("Could not pick a username, try again");
+}
+
+export async function saveAccount(userId: string, token: StravaToken, scope: string) {
+  const name = athleteName(token);
 
   // A Strava account can only belong to one PolyRunner user.
   await query("delete from strava_accounts where strava_athlete_id = $1 and user_id <> $2", [
@@ -118,6 +193,61 @@ export async function connectAccount(userId: string, code: string, scope: string
       where u.id = $1 and not exists (select 1 from athletes a where a.user_id = $1)`,
     [userId, name || null, avatar],
   );
+}
+
+export interface StravaSetupStatus {
+  source: StravaConfig["source"] | null;
+  clientId: string | null;
+  webhook: "active" | "missing" | "unknown";
+}
+
+export async function getStravaSetupStatus(): Promise<StravaSetupStatus> {
+  const config = await getStravaConfig();
+  if (!config) return { source: null, clientId: null, webhook: "missing" };
+  try {
+    const subs = await listSubscriptions(config.clientId, config.clientSecret);
+    return { source: config.source, clientId: config.clientId, webhook: subs.length > 0 ? "active" : "missing" };
+  } catch {
+    return { source: config.source, clientId: config.clientId, webhook: "unknown" };
+  }
+}
+
+async function listSubscriptions(clientId: string, clientSecret: string): Promise<{ id: number }[]> {
+  const params = new URLSearchParams({ client_id: clientId, client_secret: clientSecret });
+  const res = await fetch(`${SUBSCRIPTIONS}?${params}`, { cache: "no-store" });
+  if (res.status === 401 || res.status === 400 || res.status === 403) {
+    throw new Error("Strava rejected these credentials. Check the Client ID and Client Secret.");
+  }
+  if (!res.ok) throw new Error(`Strava error ${res.status}`);
+  return res.json();
+}
+
+/** Validates and stores credentials pasted in the admin page, then registers the webhook. */
+export async function saveStravaCredentials(clientId: string, clientSecret: string, origin: string) {
+  await listSubscriptions(clientId, clientSecret);
+  await query(
+    `insert into app_settings (key, value) values ('strava_client_id', $1), ('strava_client_secret', $2)
+     on conflict (key) do update set value = excluded.value, updated_at = now()`,
+    [clientId, clientSecret],
+  );
+  return ensureWebhook(origin);
+}
+
+export async function ensureWebhook(origin: string) {
+  const { clientId, clientSecret } = await requireConfig();
+  if ((await listSubscriptions(clientId, clientSecret)).length > 0) return true;
+  // Strava calls our webhook GET handler during this request to check the verify token.
+  const res = await fetch(SUBSCRIPTIONS, {
+    method: "POST",
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      callback_url: `${origin}/api/strava/webhook`,
+      verify_token: verifyTokenFor(clientSecret),
+    }),
+    cache: "no-store",
+  });
+  return res.ok;
 }
 
 async function accessToken(account: AccountRow) {

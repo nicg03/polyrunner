@@ -18,11 +18,8 @@ interface StravaEvent {
 // Subscription handshake: Strava echoes back hub.challenge if the verify token matches.
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-  if (
-    !isStravaConfigured ||
-    params.get("hub.mode") !== "subscribe" ||
-    params.get("hub.verify_token") !== webhookVerifyToken()
-  ) {
+  const expected = await webhookVerifyToken();
+  if (!expected || params.get("hub.mode") !== "subscribe" || params.get("hub.verify_token") !== expected) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   return NextResponse.json({ "hub.challenge": params.get("hub.challenge") });
@@ -32,7 +29,7 @@ export async function GET(request: NextRequest) {
 // Events are not signed: we only use them as a hint and re-read data through the API.
 export async function POST(request: NextRequest) {
   const event = (await request.json().catch(() => null)) as StravaEvent | null;
-  if (!event || !isStravaConfigured) return NextResponse.json({ ok: true });
+  if (!event || !(await isStravaConfigured())) return NextResponse.json({ ok: true });
 
   after(async () => {
     try {

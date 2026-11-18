@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Navbar } from "@/components/navbar";
+import { StravaStatusToast } from "@/components/strava-status-toast";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -32,6 +34,9 @@ export default function RootLayout({
         <Navbar />
         <main className="mx-auto w-full max-w-7xl px-4 pb-16">{children}</main>
         <Toaster theme="dark" position="bottom-right" />
+        <Suspense>
+          <StravaStatusToast />
+        </Suspense>
       </body>
     </html>
   );

@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar } from "@/components/avatar";
@@ -46,8 +45,9 @@ export default async function PortfolioPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login?next=/portfolio");
 
+  const stravaEnabled = await isStravaConfigured();
   const [strava, positions, trades] = await Promise.all([
-    isStravaConfigured
+    stravaEnabled
       ? queryOne<{ display_name: string | null; athlete_name: string | null }>(
           `select coalesce(s.display_name, 'Strava athlete') as display_name,
                   (select a.name from athletes a where a.user_id = s.user_id) as athlete_name
@@ -105,13 +105,8 @@ export default async function PortfolioPage() {
         </div>
       </div>
 
-      {isStravaConfigured && (
-        <Suspense>
-          <StravaCard
-            connectedAs={strava?.display_name ?? null}
-            athleteName={strava?.athlete_name ?? null}
-          />
-        </Suspense>
+      {stravaEnabled && (
+        <StravaCard connectedAs={strava?.display_name ?? null} athleteName={strava?.athlete_name ?? null} />
       )}
 
       <div className="grid gap-4 sm:grid-cols-4">

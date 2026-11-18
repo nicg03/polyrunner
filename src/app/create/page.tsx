@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { StravaButton } from "@/components/strava-card";
 import { getCurrentProfile } from "@/lib/auth";
-import { query } from "@/lib/db";
+import { query, queryOne } from "@/lib/db";
 import { getStravaFriends } from "@/lib/queries";
 import { isStravaConfigured } from "@/lib/strava";
 import type { Race } from "@/lib/types";
@@ -18,9 +18,11 @@ export default async function CreatePage({
   if (!profile) redirect("/login?next=/create");
 
   const { athlete } = await searchParams;
-  const [friends, races] = await Promise.all([
+  const [friends, races, stravaEnabled, connected] = await Promise.all([
     getStravaFriends(),
     query<Race>("select * from races where starts_at > now() order by starts_at"),
+    isStravaConfigured(),
+    queryOne("select 1 from strava_accounts where user_id = $1", [profile.id]),
   ]);
 
   return (
@@ -40,13 +42,8 @@ export default async function CreatePage({
               Bets can only be created on friends who connected Strava, so their finish time can be
               verified. Connect yours and invite your running buddies.
             </p>
-            {isStravaConfigured && (
-              <Link
-                href="/portfolio"
-                className="rounded-lg bg-[#fc5200] px-4 py-2 font-semibold text-white hover:bg-[#e34a00]"
-              >
-                Connect Strava
-              </Link>
+            {stravaEnabled && !connected && (
+              <StravaButton href="/api/strava/connect?next=/create">Connect with Strava</StravaButton>
             )}
           </div>
         ) : (

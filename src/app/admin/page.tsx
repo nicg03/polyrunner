@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { isStravaConfigured } from "@/lib/strava";
+import { headers } from "next/headers";
+import { appOrigin, getStravaSetupStatus } from "@/lib/strava";
+import { StravaSetup } from "./strava-setup";
 import {
   AthleteForm,
   CustomMarketForm,
@@ -45,6 +47,10 @@ export default async function AdminPage() {
     );
   }
 
+  const origin = appOrigin(await headers());
+  const stravaStatus = await getStravaSetupStatus();
+  const isStravaConfigured = stravaStatus.source !== null;
+
   const [races, athletes, markets, stravaUsers] = await Promise.all([
     query<Race>("select * from races order by starts_at desc"),
     query<Athlete & { user_id: string | null }>("select * from athletes order by name"),
@@ -75,6 +81,10 @@ export default async function AdminPage() {
   return (
     <div className="flex flex-col gap-6 py-6">
       <h1 className="text-2xl font-semibold">Admin</h1>
+
+      <Panel title="Strava setup">
+        <StravaSetup status={stravaStatus} origin={origin} />
+      </Panel>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel title="New race">
