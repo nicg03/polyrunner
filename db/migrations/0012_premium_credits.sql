@@ -529,7 +529,10 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- Athlete bonus: also bump lifetime_credits + trigger bib refund on PB+premium
+-- Return type changed (added bib_refund_eur) → must DROP first (42P13).
 -- ---------------------------------------------------------------------------
+
+drop function if exists award_athlete_bonus(uuid);
 
 create or replace function award_athlete_bonus(p_market_id uuid)
 returns table (
