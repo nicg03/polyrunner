@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Footprints, Plus, Trophy, User, UserPlus, Wallet, Shield } from "lucide-react";
+import { CalendarDays, Footprints, Plus, Sparkles, Trophy, User, UserPlus, Wallet, Shield } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getCurrentProfile } from "@/lib/auth";
@@ -24,10 +24,18 @@ export async function Navbar() {
           <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden sm:inline-flex")}>
             Markets
           </Link>
+          <Link href="/races" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            <CalendarDays /> <span className="hidden sm:inline">Races</span>
+          </Link>
           {profile && (
-            <Link href="/friends" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-              <UserPlus /> <span className="hidden sm:inline">Friends</span>
-            </Link>
+            <>
+              <Link href="/friends" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                <UserPlus /> <span className="hidden sm:inline">Friends</span>
+              </Link>
+              <Link href="/premium" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                <Sparkles /> <span className="hidden sm:inline">Premium</span>
+              </Link>
+            </>
           )}
           <Link href="/leaderboard" className={buttonVariants({ variant: "ghost", size: "sm" })}>
             <Trophy /> <span className="hidden sm:inline">Leaderboard</span>

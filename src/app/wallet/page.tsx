@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar } from "@/components/avatar";
+import { PremiumProgress } from "@/components/premium-progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCurrentProfile } from "@/lib/auth";
-import { query } from "@/lib/db";
+import { getAppSetting, weekStartUtc } from "@/lib/credits";
+import { query, queryOne } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { formatCents, formatCredits, formatDateTime, formatEur } from "@/lib/format";
 import { formatTime } from "@/lib/time";
@@ -54,7 +56,8 @@ export default async function WalletPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login?next=/wallet");
 
-  const [positions, trades, predictions] = await Promise.all([
+  const weekStart = weekStartUtc();
+  const [positions, trades, predictions, thresholdRaw, weekly] = await Promise.all([
     query<PositionRow>(
       `select p.outcome_id, p.market_id, p.shares, p.cost_basis, op.price,
               o.label as outcome_label, ${MARKET_TITLE_SQL} as title, r.name as race_name,
@@ -90,6 +93,11 @@ export default async function WalletPage() {
         order by tp.created_at desc`,
       [profile.id],
     ).catch(() => [] as PredictionRow[]),
+    getAppSetting("premium_threshold", "5000"),
+    queryOne<{ km: number; credits: number }>(
+      "select km, credits from weekly_km_awards where user_id = $1 and week_start = $2::date",
+      [profile.id, weekStart],
+    ).catch(() => null),
   ]);
 
   const rows = positions.map((p) => {
@@ -129,11 +137,19 @@ export default async function WalletPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Stat label="Available credits" value={formatCredits(profile.balance)} />
-        <Stat label="Lifetime earned" value={formatCredits(profile.lifetime_credits)} />
+      <PremiumProgress
+        isPremium={profile.is_premium}
+        lifetimeCredits={Number(profile.lifetime_credits)}
+        threshold={Number(thresholdRaw) || 5000}
+        balance={Number(profile.balance)}
+        eurBalance={Number(profile.eur_balance)}
+        weeklyKm={weekly ? Number(weekly.km) : null}
+        weeklyCredits={weekly ? Number(weekly.credits) : null}
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Positions value" value={formatCredits(positionsValue)} />
-        <Stat label="Total" value={formatCredits(total)} />
+        <Stat label="Total mark" value={formatCredits(total)} />
         <Stat
           label="Profit / loss"
           value={`${totalPnl >= 0 ? "+" : ""}${formatCredits(totalPnl)}`}

@@ -67,6 +67,14 @@ export default async function ProfilePage() {
               Wallet
             </Link>
             {" · "}
+            <Link href="/premium" className="text-primary hover:underline">
+              Premium
+            </Link>
+            {" · "}
+            <Link href="/races?bib=1" className="text-primary hover:underline">
+              Races for PB
+            </Link>
+            {" · "}
             <Link href="/friends" className="text-primary hover:underline">
               Friends
             </Link>
@@ -112,12 +120,27 @@ export default async function ProfilePage() {
         ))}
       </section>
 
+      <section className="rounded-xl border border-amber-500/20 bg-amber-400/5 p-4 text-sm">
+        <p className="font-medium">Chase a PB with bib refund</p>
+        <p className="mt-1 text-muted-foreground">
+          Unlock{" "}
+          <Link href="/premium" className="text-primary hover:underline">
+            Premium
+          </Link>
+          , register a bib on an upcoming race, then beat your PB — PolyRunner refunds the fee
+          automatically.{" "}
+          <Link href="/races?bib=1" className="font-medium text-primary hover:underline">
+            Search races →
+          </Link>
+        </p>
+      </section>
+
       <section className="flex flex-col gap-4 rounded-xl border bg-card p-4">
         <div>
           <h2 className="font-medium">Personal bests</h2>
           <p className="text-sm text-muted-foreground">
-            Submit a PB with proof. After an admin verifies it, new finish-time markets on that
-            distance open with odds peaked around your time, not flat.
+            Submit a PB with proof for your profile. Race-day PBs (after market resolve) also
+            trigger Premium bib refunds when you registered the bib.
           </p>
         </div>
 

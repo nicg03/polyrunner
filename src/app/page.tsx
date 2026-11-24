@@ -72,6 +72,16 @@ export default async function HomePage({
           Bet virtual credits on your friends&apos; exact finish times (no odds shown) and on
           Pros / Yes-No markets. Credits are not transferable or convertible to money.
         </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href="/races?bib=1" className={buttonVariants({ size: "sm" })}>
+            Find races for a PB refund
+          </Link>
+          {profile && (
+            <Link href="/premium" className={buttonVariants({ size: "sm", variant: "outline" })}>
+              Premium progress
+            </Link>
+          )}
+        </div>
       </section>
 
       <nav className="flex gap-1 border-b">
