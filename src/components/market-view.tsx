@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CheckCircle2, Clock, HelpCircle, MapPin, Ruler } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { PriceChart, OUTCOME_COLORS, YES_NO_COLORS } from "@/components/price-chart";
+import { PredictionPanel } from "@/components/prediction-panel";
 import { SubmitResultForm } from "@/components/submit-result-form";
 import { TradePanel, type TradeOutcome } from "@/components/trade-panel";
 import { cn } from "@/lib/utils";
@@ -19,13 +20,21 @@ import {
   stakeUnit,
 } from "@/lib/format";
 import { formatPace, formatTime } from "@/lib/time";
-import type { Athlete, ClaimStatus, EvidenceKind, Market, PriceSnapshot, Race } from "@/lib/types";
+import type {
+  Athlete,
+  ClaimStatus,
+  EvidenceKind,
+  Market,
+  PriceSnapshot,
+  Race,
+  TimePrediction,
+} from "@/lib/types";
 
 export interface ActivityItem {
-  id: number;
+  id: number | string;
   username: string;
   avatar_url: string | null;
-  side: "buy" | "sell";
+  side: "buy" | "sell" | "predict";
   outcome_label: string;
   shares: number;
   cost: number;
@@ -56,6 +65,8 @@ export function MarketView({
   isLoggedIn,
   verifiedBy,
   submitResult,
+  myPrediction = null,
+  predictionParams = { maxErrorSeconds: 600, maxMultiplier: 2 },
 }: {
   market: Market;
   race: Race;
@@ -68,12 +79,15 @@ export function MarketView({
   isLoggedIn: boolean;
   verifiedBy: VerifiedBy | null;
   submitResult: { myClaim: { status: ClaimStatus; time_seconds: number } | null } | null;
+  myPrediction?: TimePrediction | null;
+  predictionParams?: { maxErrorSeconds: number; maxMultiplier: number };
 }) {
   const isCustom = market.kind === "custom";
+  const isExact = market.pricing === "exact_time";
   const colors = isCustom ? YES_NO_COLORS : OUTCOME_COLORS;
 
   const [selected, setSelected] = useState(() => {
-    if (isCustom) return 0;
+    if (isCustom || isExact || outcomes.length === 0) return 0;
     let best = 0;
     outcomes.forEach((o, i) => {
       if (o.price > outcomes[best].price) best = i;
@@ -132,48 +146,58 @@ export function MarketView({
           </div>
         </div>
 
-        {resolved && winner && (
+        {resolved && market.actual_time_seconds != null && (
           <div className="flex items-center gap-3 rounded-xl border border-yes/40 bg-yes/10 p-4">
             <CheckCircle2 className="size-6 text-yes" />
-            {market.actual_time_seconds ? (
-              <div>
-                <p className="font-semibold">
-                  Official time: {formatTime(market.actual_time_seconds)}{" "}
-                  <span className="font-normal text-muted-foreground">
-                    ({formatPace(market.actual_time_seconds, Number(race.distance_km))})
-                  </span>
-                </p>
+            <div>
+              <p className="font-semibold">
+                Official time: {formatTime(market.actual_time_seconds)}{" "}
+                <span className="font-normal text-muted-foreground">
+                  ({formatPace(market.actual_time_seconds, Number(race.distance_km))})
+                </span>
+              </p>
+              {winner && !isExact && (
                 <p className="text-sm text-muted-foreground">Winning bracket: {winner.label}</p>
-                {verifiedBy ? (
-                  <a
-                    href={
-                      verifiedBy.evidence_kind === "photo"
-                        ? `/api/claims/${verifiedBy.id}/photo`
-                        : (verifiedBy.evidence_url ?? undefined)
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className={cn(
-                      "mt-1 inline-block text-sm font-medium hover:underline",
-                      verifiedBy.evidence_kind === "strava" ? "text-[#fc5200]" : "text-primary",
-                    )}
-                  >
-                    {EVIDENCE_LINKS[verifiedBy.evidence_kind]}
-                  </a>
-                ) : market.strava_activity_id ? (
-                  <a
-                    href={`https://www.strava.com/activities/${market.strava_activity_id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-1 inline-block text-sm font-medium text-[#fc5200] hover:underline"
-                  >
-                    Verified with Strava · View on Strava
-                  </a>
-                ) : null}
-              </div>
-            ) : (
-              <p className="font-semibold">Resolved: {winner.label}</p>
-            )}
+              )}
+              {isExact && (
+                <p className="text-sm text-muted-foreground">
+                  Predictions settled by how close each guess was — no odds.
+                </p>
+              )}
+              {verifiedBy ? (
+                <a
+                  href={
+                    verifiedBy.evidence_kind === "photo"
+                      ? `/api/claims/${verifiedBy.id}/photo`
+                      : (verifiedBy.evidence_url ?? undefined)
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cn(
+                    "mt-1 inline-block text-sm font-medium hover:underline",
+                    verifiedBy.evidence_kind === "strava" ? "text-[#fc5200]" : "text-primary",
+                  )}
+                >
+                  {EVIDENCE_LINKS[verifiedBy.evidence_kind]}
+                </a>
+              ) : market.strava_activity_id ? (
+                <a
+                  href={`https://www.strava.com/activities/${market.strava_activity_id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 inline-block text-sm font-medium text-[#fc5200] hover:underline"
+                >
+                  Verified with Strava · View on Strava
+                </a>
+              ) : null}
+            </div>
+          </div>
+        )}
+
+        {resolved && isCustom && winner && !market.actual_time_seconds && (
+          <div className="flex items-center gap-3 rounded-xl border border-yes/40 bg-yes/10 p-4">
+            <CheckCircle2 className="size-6 text-yes" />
+            <p className="font-semibold">Resolved: {winner.label}</p>
           </div>
         )}
 
@@ -185,83 +209,105 @@ export function MarketView({
           />
         )}
 
-        <div className="rounded-xl border bg-card p-4">
-          {isCustom && !resolved && (
-            <p className="mb-3 text-3xl font-semibold">
-              {formatPercent(outcomes[0].price)}{" "}
-              <span className="text-base font-normal text-muted-foreground">chance</span>
-            </p>
-          )}
-          <PriceChart outcomes={outcomes} snapshots={snapshots} colors={colors} />
-        </div>
+        {!isExact && (
+          <>
+            <div className="rounded-xl border bg-card p-4">
+              {isCustom && !resolved && outcomes[0] && (
+                <p className="mb-3 text-3xl font-semibold">
+                  {formatPercent(outcomes[0].price)}{" "}
+                  <span className="text-base font-normal text-muted-foreground">chance</span>
+                </p>
+              )}
+              <PriceChart outcomes={outcomes} snapshots={snapshots} colors={colors} />
+            </div>
 
-        <div className="overflow-hidden rounded-xl border bg-card">
-          <div className="flex items-center justify-between border-b px-4 py-2 text-xs text-muted-foreground">
-            <span>{isCustom ? "Outcome" : "Time bracket"}</span>
-            <span>Probability</span>
-          </div>
-          {outcomes.map((o, i) => {
-            const owned = positions[o.id] ?? 0;
-            const isWinner = o.id === market.winning_outcome_id;
-            const isNo = isCustom && i === 1;
-            return (
-              <div
-                key={o.id}
-                className={cn(
-                  "flex items-center gap-4 border-b px-4 py-3 last:border-b-0",
-                  i === selected && !resolved && "bg-muted/40",
-                )}
-              >
-                <span
-                  className="size-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: colors[i % colors.length] }}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">{o.label}</p>
-                  {owned > 0 && (
-                    <p className="text-xs text-primary">You hold {owned.toFixed(2)} shares</p>
-                  )}
-                </div>
-                <span className="text-2xl font-semibold">
-                  {resolved ? (isWinner ? "100%" : "0%") : formatPercent(o.price)}
-                </span>
-                {!resolved && (
-                  <button
-                    onClick={() => setSelected(i)}
-                    disabled={!isOpen}
+            <div className="overflow-hidden rounded-xl border bg-card">
+              <div className="flex items-center justify-between border-b px-4 py-2 text-xs text-muted-foreground">
+                <span>{isCustom ? "Outcome" : "Time bracket"}</span>
+                <span>Probability</span>
+              </div>
+              {outcomes.map((o, i) => {
+                const owned = positions[o.id] ?? 0;
+                const isWinner = o.id === market.winning_outcome_id;
+                const isNo = isCustom && i === 1;
+                return (
+                  <div
+                    key={o.id}
                     className={cn(
-                      "w-32 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50",
-                      isNo
-                        ? "bg-no/15 text-no hover:bg-no/25"
-                        : "bg-yes/15 text-yes hover:bg-yes/25",
+                      "flex items-center gap-4 border-b px-4 py-3 last:border-b-0",
+                      i === selected && !resolved && "bg-muted/40",
                     )}
                   >
-                    Buy {isCustom ? o.label : ""} {formatCents(o.price)}
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                    <span
+                      className="size-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: colors[i % colors.length] }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{o.label}</p>
+                      {owned > 0 && (
+                        <p className="text-xs text-primary">You hold {owned.toFixed(2)} shares</p>
+                      )}
+                    </div>
+                    <span className="text-2xl font-semibold">
+                      {resolved ? (isWinner ? "100%" : "0%") : formatPercent(o.price)}
+                    </span>
+                    {!resolved && (
+                      <button
+                        onClick={() => setSelected(i)}
+                        disabled={!isOpen}
+                        className={cn(
+                          "w-32 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50",
+                          isNo
+                            ? "bg-no/15 text-no hover:bg-no/25"
+                            : "bg-yes/15 text-yes hover:bg-yes/25",
+                        )}
+                      >
+                        Buy {isCustom ? o.label : ""} {formatCents(o.price)}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {isExact && !resolved && (
+          <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+            Friends bet virtual credits on an exact finish time. The closer the guess, the higher
+            the return — odds are not shown. Credits are not transferable or convertible to money.
+          </div>
+        )}
 
         <div className="rounded-xl border bg-card">
           <h2 className="border-b px-4 py-3 font-medium">Activity</h2>
           {activity.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-              No trades yet. Be the first!
+              {isExact ? "No predictions yet. Be the first!" : "No trades yet. Be the first!"}
             </p>
           ) : (
             <ul>
               {activity.map((a) => (
-                <li key={a.id} className="flex items-center gap-3 border-b px-4 py-2.5 text-sm last:border-b-0">
+                <li
+                  key={a.id}
+                  className="flex items-center gap-3 border-b px-4 py-2.5 text-sm last:border-b-0"
+                >
                   <Avatar name={a.username} url={a.avatar_url} size={24} />
                   <span className="min-w-0 flex-1 truncate">
                     <b>{a.username}</b>{" "}
-                    <span className={a.side === "buy" ? "text-yes" : "text-no"}>
-                      {a.side === "buy" ? "bought" : "sold"}
-                    </span>{" "}
-                    {Number(a.shares).toFixed(1)} <b>{a.outcome_label}</b> shares for{" "}
-                    {formatCredits(a.cost)}
+                    {a.side === "predict" ? (
+                      <>
+                        predicted <b>{a.outcome_label}</b> for {formatCredits(a.cost)}
+                      </>
+                    ) : (
+                      <>
+                        <span className={a.side === "buy" ? "text-yes" : "text-no"}>
+                          {a.side === "buy" ? "bought" : "sold"}
+                        </span>{" "}
+                        {Number(a.shares).toFixed(1)} <b>{a.outcome_label}</b> shares for{" "}
+                        {formatCredits(a.cost)}
+                      </>
+                    )}
                   </span>
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {formatRelative(a.created_at)}
@@ -286,7 +332,26 @@ export function MarketView({
       </div>
 
       <div className="lg:sticky lg:top-20 lg:self-start">
-        {resolved ? (
+        {isExact ? (
+          <PredictionPanel
+            marketId={market.id}
+            balance={balance}
+            isOpen={isOpen && !resolved}
+            isLoggedIn={isLoggedIn}
+            existing={
+              myPrediction
+                ? {
+                    predicted_seconds: Number(myPrediction.predicted_seconds),
+                    stake: Number(myPrediction.stake),
+                    payout: myPrediction.payout != null ? Number(myPrediction.payout) : null,
+                  }
+                : null
+            }
+            maxErrorSeconds={predictionParams.maxErrorSeconds}
+            maxMultiplier={predictionParams.maxMultiplier}
+            resolvedActual={market.actual_time_seconds}
+          />
+        ) : resolved ? (
           <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
             This market is resolved. Winnings have been paid out automatically.
           </div>

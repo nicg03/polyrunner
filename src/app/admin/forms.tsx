@@ -98,6 +98,9 @@ export function RaceForm() {
               <Input name="location" placeholder="Milan" />
             </Field>
           </div>
+          <Field label="Bib price (EUR, simulated — 0 = none)">
+            <Input name="bib_price_eur" inputMode="decimal" defaultValue="0" placeholder="45" />
+          </Field>
           <Button type="submit" disabled={pending}>
             Create race
           </Button>

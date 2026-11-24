@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
 import { Calendar, MapPin, Ruler } from "lucide-react";
+import { BibRegisterButton } from "@/components/bib-register";
 import { MarketCard } from "@/components/market-card";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { getCurrentProfile } from "@/lib/auth";
+import { queryOne } from "@/lib/db";
 import { getMarkets, getRace, isUuid } from "@/lib/queries";
-import { formatDateTime, formatVolume } from "@/lib/format";
+import { formatDateTime, formatEur, formatVolume } from "@/lib/format";
 import type { MarketWithRelations } from "@/lib/types";
 
 export default async function RacePage({ params }: { params: Promise<{ id: string }> }) {
@@ -12,8 +15,17 @@ export default async function RacePage({ params }: { params: Promise<{ id: strin
   const race = await getRace(id);
   if (!race) notFound();
 
+  const profile = await getCurrentProfile();
   const markets = await getMarkets({ raceId: id });
   const volume = markets.reduce((sum, m) => sum + Number(m.volume), 0);
+  const bibPrice = Number(race.bib_price_eur) || 0;
+
+  const bibEntry = profile
+    ? await queryOne<{ status: "paid" | "refunded" }>(
+        "select status from bib_entries where user_id = $1 and race_id = $2",
+        [profile.id, id],
+      )
+    : null;
 
   return (
     <div className="flex flex-col gap-6 py-6">
@@ -33,7 +45,18 @@ export default async function RacePage({ params }: { params: Promise<{ id: strin
             </span>
           )}
           <span>{formatVolume(volume)} credits total vol.</span>
+          {bibPrice > 0 && <span>Bib {formatEur(bibPrice)}</span>}
         </div>
+        {bibPrice > 0 && (
+          <div className="mt-4 border-t pt-4">
+            <BibRegisterButton
+              raceId={id}
+              priceEur={bibPrice}
+              status={bibEntry?.status ?? "none"}
+              isLoggedIn={Boolean(profile)}
+            />
+          </div>
+        )}
       </section>
 
       {markets.length === 0 && (

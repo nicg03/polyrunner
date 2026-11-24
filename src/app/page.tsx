@@ -69,8 +69,8 @@ export default async function HomePage({
       <section className="rounded-2xl border bg-gradient-to-br from-primary/20 via-card to-card p-6">
         <h1 className="text-2xl font-semibold sm:text-3xl">How fast will they run?</h1>
         <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-          Bet virtual credits on your friends&apos; finish times and on anything else that
-          might happen on race day. Odds move with every trade.
+          Bet virtual credits on your friends&apos; exact finish times (no odds shown) and on
+          Pros / Yes-No markets. Credits are not transferable or convertible to money.
         </p>
       </section>
 

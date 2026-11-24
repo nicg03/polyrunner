@@ -5,7 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getCurrentProfile } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { formatCents, formatCredits, formatDateTime } from "@/lib/format";
+import { formatCents, formatCredits, formatDateTime, formatEur } from "@/lib/format";
+import { formatTime } from "@/lib/time";
 
 export const metadata = { title: "Wallet · PolyRunner" };
 
@@ -39,11 +40,21 @@ interface TradeRow {
   title: string;
 }
 
+interface PredictionRow {
+  id: string;
+  market_id: string;
+  predicted_seconds: number;
+  stake: number;
+  payout: number | null;
+  title: string;
+  status: string;
+}
+
 export default async function WalletPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login?next=/wallet");
 
-  const [positions, trades] = await Promise.all([
+  const [positions, trades, predictions] = await Promise.all([
     query<PositionRow>(
       `select p.outcome_id, p.market_id, p.shares, p.cost_basis, op.price,
               o.label as outcome_label, ${MARKET_TITLE_SQL} as title, r.name as race_name,
@@ -69,6 +80,16 @@ export default async function WalletPage() {
         order by t.created_at desc limit 50`,
       [profile.id],
     ),
+    query<PredictionRow>(
+      `select tp.id, tp.market_id, tp.predicted_seconds, tp.stake, tp.payout,
+              ${MARKET_TITLE_SQL} as title, m.status
+         from time_predictions tp
+         join markets m on m.id = tp.market_id
+         left join athletes a on a.id = m.athlete_id
+        where tp.user_id = $1
+        order by tp.created_at desc`,
+      [profile.id],
+    ).catch(() => [] as PredictionRow[]),
   ]);
 
   const rows = positions.map((p) => {
@@ -91,9 +112,16 @@ export default async function WalletPage() {
           <Avatar name={profile.username} url={profile.avatar_url} size={56} />
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold">Wallet</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            Wallet
+            {profile.is_premium && (
+              <span className="rounded bg-amber-400/20 px-2 py-0.5 text-xs font-semibold text-amber-500">
+                PREMIUM
+              </span>
+            )}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            @{profile.username} ·{" "}
+            @{profile.username} · virtual credits only (not transferable / not cash) ·{" "}
             <Link href="/profile" className="text-primary hover:underline">
               Profile
             </Link>
@@ -101,8 +129,9 @@ export default async function WalletPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
-        <Stat label="Available balance" value={formatCredits(profile.balance)} />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <Stat label="Available credits" value={formatCredits(profile.balance)} />
+        <Stat label="Lifetime earned" value={formatCredits(profile.lifetime_credits)} />
         <Stat label="Positions value" value={formatCredits(positionsValue)} />
         <Stat label="Total" value={formatCredits(total)} />
         <Stat
@@ -110,7 +139,35 @@ export default async function WalletPage() {
           value={`${totalPnl >= 0 ? "+" : ""}${formatCredits(totalPnl)}`}
           className={totalPnl >= 0 ? "text-yes" : "text-no"}
         />
+        <Stat label="EUR wallet (refunds)" value={formatEur(Number(profile.eur_balance))} />
       </div>
+
+      {predictions.filter((p) => p.status !== "resolved").length > 0 && (
+        <section className="rounded-xl border bg-card">
+          <h2 className="border-b px-4 py-3 font-medium">Open time predictions</h2>
+          <Table>
+            <TableBody>
+              {predictions
+                .filter((p) => p.status !== "resolved")
+                .map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="max-w-96 pl-4">
+                      <Link href={`/markets/${p.market_id}`} className="font-medium hover:underline">
+                        {p.title}
+                      </Link>{" "}
+                      <span className="text-muted-foreground">
+                        · {formatTime(Number(p.predicted_seconds))}
+                      </span>
+                    </TableCell>
+                    <TableCell className="pr-4 text-right">
+                      {formatCredits(Number(p.stake))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </section>
+      )}
 
       <section className="rounded-xl border bg-card">
         <h2 className="border-b px-4 py-3 font-medium">Open positions</h2>

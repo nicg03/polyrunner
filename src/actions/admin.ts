@@ -15,14 +15,24 @@ async function requireAdmin() {
 
 /** Gives the linked athlete a bonus for a personal best or a steady run; returns a note for the toast. */
 async function awardBonus(marketId: string) {
-  const [reward] = await query<{ reward_kind: string; reward_amount: number }>(
-    "select * from award_athlete_bonus($1)",
-    [marketId],
-  );
+  const [reward] = await query<{
+    reward_kind: string | null;
+    reward_amount: number | null;
+    bib_refund_eur: number | null;
+  }>("select * from award_athlete_bonus($1)", [marketId]);
   if (!reward) return "";
-  return reward.reward_kind === "personal_best"
-    ? ` Personal best! The athlete earned ${reward.reward_amount} credits.`
-    : ` Steady run: the athlete earned ${reward.reward_amount} credits.`;
+  const parts: string[] = [];
+  if (reward.reward_kind === "personal_best") {
+    parts.push(` Personal best! The athlete earned ${reward.reward_amount} credits.`);
+  } else if (reward.reward_kind === "steady") {
+    parts.push(` Steady run: the athlete earned ${reward.reward_amount} credits.`);
+  }
+  if (reward.bib_refund_eur != null && Number(reward.bib_refund_eur) > 0) {
+    parts.push(
+      ` Premium PB: PolyRunner refunded €${Number(reward.bib_refund_eur).toFixed(2)} to their EUR wallet.`,
+    );
+  }
+  return parts.join("");
 }
 
 async function closePendingClaims(marketId: string) {
@@ -57,9 +67,12 @@ export async function createRace(_prev: ActionResult, formData: FormData): Promi
     const distance = Number(str(formData, "distance_km").replace(",", "."));
     if (!name || !startsAt || !(distance > 0)) throw new Error("Fill in name, date and distance");
 
+    const bibPrice = Number(str(formData, "bib_price_eur").replace(",", ".") || "0");
+    if (!(bibPrice >= 0) || Number.isNaN(bibPrice)) throw new Error("Invalid bib price");
+
     await query(
-      "insert into races (name, starts_at, distance_km, location) values ($1, $2, $3, $4)",
-      [name, startsAt, distance, str(formData, "location") || null],
+      "insert into races (name, starts_at, distance_km, location, bib_price_eur) values ($1, $2, $3, $4, $5)",
+      [name, startsAt, distance, str(formData, "location") || null, bibPrice],
     );
     return `Race "${name}" created`;
   });

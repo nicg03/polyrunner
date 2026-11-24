@@ -228,7 +228,7 @@ export function TradePanel({
       <p className="text-center text-[11px] text-muted-foreground">
         {stake === "beer"
           ? "Each share pays 1 beer if this outcome wins. 1 beer = 1 credit in your wallet — settle the round with friends in real life."
-          : "Each share pays 1 credit if this outcome wins. Virtual credits, just for fun."}
+          : "Each share pays 1 credit if this outcome wins. Virtual credits only — not transferable, not convertible to money."}
       </p>
     </div>
   );

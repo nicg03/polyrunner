@@ -70,7 +70,8 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   if (!token) return null;
 
   return queryOne<Profile>(
-    `select u.id, u.username, u.avatar_url, u.balance, u.is_admin, u.created_at
+    `select u.id, u.username, u.avatar_url, u.balance, u.lifetime_credits,
+            u.eur_balance, u.is_premium, u.is_admin, u.created_at
        from sessions s join users u on u.id = s.user_id
       where s.token_hash = $1 and s.expires_at > now()`,
     [hashToken(token)],

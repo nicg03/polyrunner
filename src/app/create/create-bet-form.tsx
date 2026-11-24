@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Beer, Clock, Coins, HelpCircle, User, Users } from "lucide-react";
 import { createFriendBet } from "@/actions/markets";
 import { ActionForm } from "@/components/action-form";
@@ -10,12 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDate } from "@/lib/format";
-import {
-  bucketsFromThresholds,
-  formatTime,
-  parseTime,
-  thresholdsAroundPersonalBest,
-} from "@/lib/time";
 import type { Athlete, MarketKind, MarketStake, Race } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -36,13 +30,13 @@ export function CreateBetForm({
   friends,
   races,
   initialAthleteId,
-  pbs,
+  pbs: _pbs,
 }: {
   me: Athlete | null;
   friends: Athlete[];
   races: Race[];
   initialAthleteId?: string;
-  /** Verified PBs keyed by athlete id. */
+  /** Verified PBs keyed by athlete id (kept for API compat; exact-time markets don't seed brackets). */
   pbs: Record<string, { distance_km: number; time_seconds: number }[]>;
 }) {
   const initialIsFriend = friends.some((f) => f.id === initialAthleteId);
@@ -57,13 +51,6 @@ export function CreateBetForm({
   const [newDistance, setNewDistance] = useState("21.1");
   const [kind, setKind] = useState<MarketKind>("time");
   const [stake, setStake] = useState<MarketStake>("credits");
-  const [thresholds, setThresholds] = useState("3:30:00, 3:45:00, 4:00:00");
-  const [seededFromPb, setSeededFromPb] = useState(false);
-
-  const raceDistance =
-    raceId === "new"
-      ? Number(newDistance.replace(",", ".")) || null
-      : Number(races.find((r) => r.id === raceId)?.distance_km) || null;
 
   const selected =
     target === "yourself" ? me : friends.find((f) => f.id === athleteId) ?? null;
@@ -71,26 +58,6 @@ export function CreateBetForm({
   useEffect(() => {
     if (target === "yourself" && me) setAthleteId(me.id);
   }, [target, me]);
-
-  useEffect(() => {
-    if (!selected || !raceDistance || !(raceDistance > 0)) {
-      setSeededFromPb(false);
-      return;
-    }
-    const list = pbs[selected.id] ?? [];
-    const pb = list.find((p) => Math.abs(p.distance_km - raceDistance) / raceDistance <= 0.02);
-    if (!pb) {
-      setSeededFromPb(false);
-      return;
-    }
-    setThresholds(thresholdsAroundPersonalBest(pb.time_seconds).map(formatTime).join(", "));
-    setSeededFromPb(true);
-  }, [selected, raceDistance, pbs]);
-
-  const buckets = useMemo(() => {
-    const secs = thresholds.split(",").map((s) => parseTime(s.trim()));
-    return secs.some((s) => s === null) ? [] : bucketsFromThresholds(secs as number[]);
-  }, [thresholds]);
 
   return (
     <ActionForm action={createFriendBet} resetOnSuccess={false} className="flex flex-col gap-5">
@@ -222,34 +189,16 @@ export function CreateBetForm({
             <p className="text-xs text-muted-foreground">
               {stake === "beer"
                 ? "Same wallet as credits (1 beer = 1 credit), labeled as beers so the loser owes a round among friends."
-                : "Classic PolyRunner credits."}
+                : "Classic PolyRunner credits — not transferable or convertible to money."}
             </p>
           </Field>
 
           {kind === "time" ? (
-            <Field label="Time thresholds, comma separated (mm:ss or h:mm:ss)">
-              <Input name="thresholds" value={thresholds} onChange={(e) => {
-                setThresholds(e.target.value);
-                setSeededFromPb(false);
-              }} />
-              {seededFromPb && (
-                <p className="text-xs text-yes">
-                  Suggested from {selected?.name}&apos;s verified personal best. Opening odds will
-                  peak around that time, not flat 25% each.
-                </p>
-              )}
-              {buckets.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {buckets.map((b) => (
-                    <span key={b.label} className="rounded-md bg-muted px-2 py-0.5 text-xs">
-                      {b.label}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-no">Use times like 45:00 or 1:45:00</p>
-              )}
-            </Field>
+            <p className="rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              Friends stake on an <b className="text-foreground">exact finish time</b>. Payout
+              shrinks with the error — no odds or brackets. Credits/beers stay in the virtual
+              wallet.
+            </p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
               <Field label="Question">
@@ -268,18 +217,14 @@ export function CreateBetForm({
           )}
 
           <p className="text-xs text-muted-foreground">
-            Trading closes when the race starts. After the race, {selected?.name ?? "the runner"}{" "}
+            Betting closes when the race starts. After the race, {selected?.name ?? "the runner"}{" "}
             submits the finish time with a proof and an admin verifies it.
           </p>
 
           <Button
             type="submit"
             size="lg"
-            disabled={
-              pending ||
-              (target === "yourself" ? !me : !athleteId) ||
-              (kind === "time" && buckets.length < 2)
-            }
+            disabled={pending || (target === "yourself" ? !me : !athleteId)}
           >
             {pending ? "Creating..." : "Create bet"}
           </Button>

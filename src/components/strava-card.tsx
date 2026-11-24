@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { disconnectStrava } from "@/actions/strava";
+import { disconnectStrava, refreshWeeklyKm } from "@/actions/strava";
 import { Button } from "@/components/ui/button";
 
 export function StravaCard({
@@ -11,11 +11,13 @@ export function StravaCard({
   athleteName,
   configured = true,
   isAdmin = false,
+  weeklyKm = null,
 }: {
   connectedAs: string | null;
   athleteName: string | null;
   configured?: boolean;
   isAdmin?: boolean;
+  weeklyKm?: { km: number; credits: number } | null;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -29,15 +31,22 @@ export function StravaCard({
             <p className="text-muted-foreground">
               {athleteName
                 ? "Your race-day runs are picked up automatically, no need to submit them by hand."
-                : "An admin still needs to link you to your athlete profile."}
+                : "An admin still needs to link you to your athlete profile."}{" "}
+              Weekly km earn virtual credits (linear to 40 km, then a lower rate). Credits unlock
+              Premium and are not cash.
             </p>
+            {weeklyKm && (
+              <p className="mt-1 text-xs">
+                This week: <b>{weeklyKm.km} km</b> → {weeklyKm.credits.toFixed(0)} credits awarded
+              </p>
+            )}
           </>
         ) : (
           <>
             <p className="font-medium">Strava (optional)</p>
             <p className="text-muted-foreground">
               {configured
-                ? "Connect Strava and your race-day runs are found automatically, so you don't have to submit your time by hand."
+                ? "Connect Strava and your race-day runs are found automatically. Weekly kilometres also earn credits toward Premium."
                 : isAdmin
                   ? "Strava is not configured yet: add your Strava API Client ID and Secret in the Admin page."
                   : "Strava has not been set up by an admin yet."}
@@ -46,20 +55,36 @@ export function StravaCard({
         )}
       </div>
       {connectedAs ? (
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={pending}
-          onClick={() =>
-            startTransition(async () => {
-              const res = await disconnectStrava();
-              if (res?.error) toast.error(res.error);
-              else if (res?.ok) toast.success(res.ok);
-            })
-          }
-        >
-          Disconnect
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                const res = await refreshWeeklyKm();
+                if (res?.error) toast.error(res.error);
+                else if (res?.ok) toast.success(res.ok);
+              })
+            }
+          >
+            Sync weekly km
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                const res = await disconnectStrava();
+                if (res?.error) toast.error(res.error);
+                else if (res?.ok) toast.success(res.ok);
+              })
+            }
+          >
+            Disconnect
+          </Button>
+        </div>
       ) : configured ? (
         <StravaButton href="/api/strava/connect?next=/profile">Connect with Strava</StravaButton>
       ) : isAdmin ? (

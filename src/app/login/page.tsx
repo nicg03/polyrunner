@@ -20,8 +20,8 @@ export default async function LoginPage({
         <h1 className="text-2xl font-semibold">Join PolyRunner</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {stravaEnabled
-            ? "Sign in with your Strava account: no password needed. You get 1,000 virtual credits when you join."
-            : "Sign up with your email and a password. You get 1,000 virtual credits when you join."}
+            ? "Sign in with your Strava account: no password needed. You get 1,000 virtual credits when you join (not transferable or convertible to money)."
+            : "Sign up with your email and a password. You get 1,000 virtual credits when you join (not transferable or convertible to money)."}
         </p>
       </div>
 

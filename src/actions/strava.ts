@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/lib/auth";
-import { disconnectAccount } from "@/lib/strava";
+import { formatCredits } from "@/lib/format";
+import { disconnectAccount, syncWeeklyKm } from "@/lib/strava";
 import type { ActionResult } from "@/lib/types";
 
 export async function disconnectStrava(): Promise<ActionResult> {
@@ -15,4 +16,19 @@ export async function disconnectStrava(): Promise<ActionResult> {
   }
   revalidatePath("/profile");
   return { ok: "Strava disconnected" };
+}
+
+export async function refreshWeeklyKm(): Promise<ActionResult> {
+  const profile = await getCurrentProfile();
+  if (!profile) return { error: "Log in first" };
+  try {
+    const result = await syncWeeklyKm(profile.id);
+    if (!result) return { error: "Connect Strava first" };
+    revalidatePath("/", "layout");
+    return {
+      ok: `This week: ${result.km} km → ${formatCredits(result.credits)} credits (virtual, non-transferable)`,
+    };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Could not sync weekly km" };
+  }
 }

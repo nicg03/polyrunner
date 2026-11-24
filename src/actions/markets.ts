@@ -4,12 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
-import { getAthletePb } from "@/lib/queries";
-import {
-  bucketsFromThresholds,
-  parseTime,
-  probsAroundPersonalBest,
-} from "@/lib/time";
 import type { ActionResult } from "@/lib/types";
 
 const DAILY_MARKET_LIMIT = 10;
@@ -71,20 +65,12 @@ export async function createFriendBet(_prev: ActionResult, formData: FormData): 
     if (count >= DAILY_MARKET_LIMIT) throw new Error(`You can create up to ${DAILY_MARKET_LIMIT} bets a day`);
 
     const kind = str(formData, "kind");
-    let outcomes: unknown[] = [];
     let question = "";
     let yesProb = 0.5;
     const race = await resolveRace(formData);
 
     if (kind === "time") {
-      const parts = str(formData, "thresholds").split(",").map((s) => s.trim()).filter(Boolean);
-      const seconds = parts.map(parseTime);
-      if (seconds.some((s) => s === null)) throw new Error("Invalid time threshold (use mm:ss or h:mm:ss)");
-      const buckets = bucketsFromThresholds(seconds as number[]);
-      if (buckets.length < 2) throw new Error("Add at least one time threshold");
-
-      const pb = await getAthletePb(athlete.id, race.distance_km);
-      outcomes = pb ? probsAroundPersonalBest(buckets, pb.time_seconds) : buckets;
+      // Friend finish-time markets use exact-time predictions (no LMSR brackets).
     } else if (kind === "custom") {
       question = str(formData, "question");
       yesProb = Number(str(formData, "yes_prob") || 50) / 100;
@@ -96,11 +82,9 @@ export async function createFriendBet(_prev: ActionResult, formData: FormData): 
 
     const [row] =
       kind === "time"
-        ? await query<{ id: string }>("select create_market($1, $2, $3, null, $4::jsonb) as id", [
+        ? await query<{ id: string }>("select create_exact_time_market($1, $2, null) as id", [
             race.id,
             athlete.id,
-            DEFAULT_LIQUIDITY,
-            JSON.stringify(outcomes),
           ])
         : await query<{ id: string }>("select create_custom_market($1, $2, $3, $4, null, $5) as id", [
             race.id,

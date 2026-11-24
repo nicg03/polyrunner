@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import { weekStartUtc } from "@/lib/credits";
 import { query, queryOne } from "@/lib/db";
 
 const API = "https://www.strava.com/api/v3";
@@ -355,12 +356,43 @@ async function proposeResults(userId: string, activities: StravaActivity[]) {
   return proposed;
 }
 
+/** Sum Run/TrailRun distance for the current ISO week and award virtual credits. */
+export async function syncWeeklyKm(userId: string): Promise<{ km: number; credits: number } | null> {
+  const account = await getAccount("user_id", userId);
+  if (!account) return null;
+
+  const weekStart = weekStartUtc();
+  const after = Math.floor(new Date(`${weekStart}T00:00:00.000Z`).getTime() / 1000);
+  const activities = await api<StravaActivity[]>(
+    account,
+    `/athlete/activities?after=${after}&per_page=100`,
+  );
+
+  let meters = 0;
+  for (const a of activities) {
+    if (!RUN_TYPES.has(a.sport_type ?? a.type ?? "")) continue;
+    meters += Number(a.distance) || 0;
+  }
+  const km = Math.round((meters / 1000) * 1000) / 1000;
+
+  const [row] = await query<{ award_weekly_km: number }>(
+    "select award_weekly_km($1, $2::date, $3) as award_weekly_km",
+    [userId, weekStart, km],
+  );
+  return { km, credits: Number(row?.award_weekly_km ?? 0) };
+}
+
 /** Webhook path: a single activity was created or updated on Strava. */
 export async function handleActivityEvent(stravaAthleteId: number, activityId: number) {
   const account = await getAccount("strava_athlete_id", stravaAthleteId);
   if (!account) return;
   const activity = await api<StravaActivity>(account, `/activities/${activityId}`);
   await proposeResults(account.user_id, [activity]);
+  try {
+    await syncWeeklyKm(account.user_id);
+  } catch {
+    // Weekly km is best-effort; race matching must not fail because of it.
+  }
 }
 
 export async function handleActivityDeleted(activityId: number) {

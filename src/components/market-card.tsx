@@ -8,10 +8,13 @@ import { formatTime } from "@/lib/time";
 import type { MarketWithRelations } from "@/lib/types";
 
 export function MarketCard({ market }: { market: MarketWithRelations }) {
-  const outcomes = outcomePrices(
-    [...market.outcomes].sort((a, b) => a.sort_order - b.sort_order),
-    market.liquidity_b,
-  );
+  const isExact = market.pricing === "exact_time";
+  const outcomes = isExact
+    ? []
+    : outcomePrices(
+        [...market.outcomes].sort((a, b) => a.sort_order - b.sort_order),
+        market.liquidity_b,
+      );
   const resolved = market.status === "resolved";
   const winner = outcomes.find((o) => o.id === market.winning_outcome_id);
   const isClosed =
@@ -39,7 +42,14 @@ export function MarketCard({ market }: { market: MarketWithRelations }) {
               <span className="rounded bg-amber-400/15 px-1 text-[10px] font-semibold text-amber-400">PRO</span>
             )}
             {market.stake === "beer" && (
-              <span className="rounded bg-amber-600/15 px-1 text-[10px] font-semibold text-amber-600">BEER</span>
+              <span className="rounded bg-amber-600/15 px-1 text-[10px] font-semibold text-amber-600">
+                BEER
+              </span>
+            )}
+            {isExact && (
+              <span className="rounded bg-primary/15 px-1 text-[10px] font-semibold text-primary">
+                EXACT TIME
+              </span>
             )}
             {market.race.name}
           </p>
@@ -47,13 +57,17 @@ export function MarketCard({ market }: { market: MarketWithRelations }) {
         {isCustom && !resolved && <YesGauge price={outcomes[0]?.price ?? 0} />}
       </div>
 
-      {resolved && winner ? (
+      {resolved && (winner || (isExact && market.actual_time_seconds)) ? (
         <div className="flex items-center gap-2 rounded-lg bg-yes/10 px-3 py-2 text-sm text-yes">
           <CheckCircle2 className="size-4" />
-          <span className="font-medium">{winner.label}</span>
+          <span className="font-medium">{winner?.label ?? "Official time"}</span>
           {market.actual_time_seconds && (
             <span className="ml-auto font-mono">{formatTime(market.actual_time_seconds)}</span>
           )}
+        </div>
+      ) : isExact ? (
+        <div className="rounded-lg bg-muted/50 px-3 py-3 text-sm text-muted-foreground">
+          Stake credits on an exact finish time — closer guesses pay more. No odds shown.
         </div>
       ) : isCustom ? (
         <div className="grid grid-cols-2 gap-2">

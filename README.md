@@ -1,18 +1,17 @@
 # PolyRunner
 
-Polymarket-style prediction markets on your running friends' races.
-Just for fun: everything runs on **virtual credits**.
+Prediction markets on your running friends' races.
+Just for fun: betting runs on **virtual credits** (not transferable, not convertible to money).
 
 ## How it works
 
 Each race can have two kinds of markets:
 
-- **Finish-time markets**: one per athlete per race (e.g. "What time will Marco run?"). The market
-  is split into **time brackets** (`< 3:15:00`, `3:15:00 - 3:30:00`, ...).
-- **Yes/No markets**: free-form questions created by the admin (e.g. "Will Marco stop to walk at
-  any point?", "Will Luca finish ahead of Giulia?"), optionally tied to an athlete.
-
-Every outcome trades between 0 and 100 cents, and the price is its implied probability.
+- **Friend finish-time markets**: one per athlete per race. Friends stake credits on an **exact
+  finish time**; payout shrinks with the absolute error (no odds / brackets shown). Max return is
+  2× the stake when the guess is exact (configurable).
+- **Pro finish-time markets**: time brackets with an LMSR market maker (admin-created Pros).
+- **Yes/No markets**: free-form questions (LMSR shares), optionally tied to an athlete.
 
 Markets are grouped in two sections:
 
@@ -22,19 +21,21 @@ Markets are grouped in two sections:
   Other friend). The leaderboard is limited to you and your accepted friends. Each user can create
   up to 10 bets a day.
 - **Profile** (`/profile`): personal bests with proof (Strava / photo / official results), verified
-  by an admin. Verified PBs seed the opening odds of finish-time markets on that distance.
-- **Wallet** (`/wallet`): balances, open positions and trade history (formerly Portfolio).
+  by an admin.
+- **Wallet** (`/wallet`): balances, open positions, predictions and trade history.
 - **Stake**: each bet can be in **credits** or **beers** (same wallet: 1 beer = 1 credit; beer is the
   social label so friends can settle a round in real life).
 - **Pros**: athletes created by the admin with the "Pro" section (elite runners, race winners...),
   resolved by hand with the official result.
 
-- Every user starts with **1,000 credits**. Buy shares of the outcome you believe in: if it wins,
-  each share pays 1 credit, otherwise 0. You can sell back any time before trading closes.
-- Prices come from an automated **LMSR** market maker (Logarithmic Market Scoring Rule): there is
-  always liquidity even with few players, and prices always add up to 100%.
-- After the race an admin enters the official time (finish-time markets) or picks the winning
-  outcome (Yes/No markets), and payouts happen automatically.
+### Credits, Premium, bibs
+
+- Every user starts with **1,000 virtual credits**. Lifetime credits unlock **Premium** at 5,000
+  (sticky). Weekly Strava km award credits (10/km up to 40 km, then 5/km).
+- Credits are **not transferable** between users and **not convertible to money**.
+- Races can have a simulated **bib price (EUR)**. Registering records a paid bib. If a **Premium**
+  runner hits a **personal best**, PolyRunner **automatically refunds** the bib into their EUR
+  wallet ledger (no admin step; Stripe can plug in later).
 
 ## Verifying results
 

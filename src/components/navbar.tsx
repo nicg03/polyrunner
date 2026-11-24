@@ -4,7 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getCurrentProfile } from "@/lib/auth";
 import { logout } from "@/actions/auth";
-import { formatCredits } from "@/lib/format";
+import { formatCredits, formatEur } from "@/lib/format";
 import { Avatar } from "@/components/avatar";
 
 export async function Navbar() {
@@ -46,10 +46,22 @@ export async function Navbar() {
                 <Plus /> <span className="hidden sm:inline">Create bet</span>
               </Link>
               <Link href="/wallet" className="flex flex-col items-end leading-tight hover:opacity-80">
-                <span className="text-xs text-muted-foreground">Balance</span>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  Credits
+                  {profile.is_premium && (
+                    <span className="rounded bg-amber-400/20 px-1 text-[10px] font-semibold text-amber-500">
+                      PREMIUM
+                    </span>
+                  )}
+                </span>
                 <span className="text-sm font-semibold text-yes">
                   {formatCredits(profile.balance)}
                 </span>
+                {Number(profile.eur_balance) > 0 && (
+                  <span className="text-[10px] text-muted-foreground">
+                    EUR {formatEur(Number(profile.eur_balance))}
+                  </span>
+                )}
               </Link>
               <Link href="/wallet" className={buttonVariants({ variant: "outline", size: "sm" })}>
                 <Wallet /> <span className="hidden sm:inline">Wallet</span>

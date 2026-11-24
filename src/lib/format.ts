@@ -22,6 +22,21 @@ export function formatStake(value: number, stake: "credits" | "beer" = "credits"
   return `${credits.format(n)} ${stakeUnit(stake, Math.abs(n) === 1 ? 1 : 2)}`;
 }
 
+const eur = new Intl.NumberFormat("it-IT", {
+  style: "currency",
+  currency: "EUR",
+});
+
+export function formatEur(value: number): string {
+  return eur.format(Number(value));
+}
+
+/** Max payout for an exact-time prediction (stake × multiplier at zero error). */
+export function predictionPayout(stake: number, errorSeconds: number, maxError = 600, mult = 2): number {
+  if (!(stake > 0) || maxError <= 0) return 0;
+  return stake * mult * Math.max(0, 1 - Math.abs(errorSeconds) / maxError);
+}
+
 export function formatVolume(value: number): string {
   return compact.format(Number(value));
 }

@@ -3,12 +3,16 @@ export type MarketStatus = "open" | "closed" | "resolved";
 export type MarketKind = "time" | "custom";
 /** What's at stake: same wallet either way; beer is the social label among friends. */
 export type MarketStake = "credits" | "beer";
+export type MarketPricing = "lmsr" | "exact_time";
 
 export interface Profile {
   id: string;
   username: string;
   avatar_url: string | null;
   balance: number;
+  lifetime_credits: number;
+  eur_balance: number;
+  is_premium: boolean;
   is_admin: boolean;
   created_at: string;
 }
@@ -20,6 +24,7 @@ export interface Race {
   distance_km: number;
   location: string | null;
   image_url: string | null;
+  bib_price_eur: number;
   status: RaceStatus;
 }
 
@@ -51,6 +56,7 @@ export interface Market {
   athlete_id: string | null;
   kind: MarketKind;
   stake: MarketStake;
+  pricing: MarketPricing;
   question: string | null;
   liquidity_b: number;
   status: MarketStatus;
@@ -62,6 +68,18 @@ export interface Market {
   created_by: string | null;
   volume: number;
   created_at: string;
+}
+
+export interface TimePrediction {
+  id: string;
+  market_id: string;
+  user_id: string;
+  predicted_seconds: number;
+  stake: number;
+  payout: number | null;
+  created_at: string;
+  username?: string;
+  avatar_url?: string | null;
 }
 
 export interface StravaResult {
