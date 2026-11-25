@@ -5,15 +5,10 @@ import { getCurrentProfile } from "@/lib/auth";
 import { weekStartUtc } from "@/lib/credits";
 import { query, queryOne } from "@/lib/db";
 import { cappedTargetKm, suggestedWeeklyTarget } from "@/lib/activity";
+import { CHARITIES } from "@/lib/charities";
 import { getPaymentProvider } from "@/lib/payments/mock";
 import { getWeekStats } from "@/lib/activity";
 import type { ActionResult } from "@/lib/types";
-
-const CHARITIES = ["Fondazione Veronesi", "Emergency", "AIRC", "Medici Senza Frontiere"];
-
-export async function listCharities() {
-  return CHARITIES;
-}
 
 export async function createCommitmentPot(
   _prev: ActionResult,
@@ -27,7 +22,9 @@ export async function createCommitmentPot(
   const charity = String(formData.get("charity") ?? "").trim();
   if (!(amount >= 5 && amount <= 50)) return { error: "Importo tra 5 e 50 €" };
   if (!(targetKm > 0)) return { error: "Obiettivo km non valido" };
-  if (!CHARITIES.includes(charity)) return { error: "Scegli una ONLUS dalla lista" };
+  if (!(CHARITIES as readonly string[]).includes(charity)) {
+    return { error: "Scegli una ONLUS dalla lista" };
+  }
 
   // Cap +10% vs last pot
   const last = await queryOne<{ target_km: number }>(

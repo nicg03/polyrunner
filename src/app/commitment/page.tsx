@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import {
   createCommitmentPot,
-  listCharities,
   resolveCommitmentPots,
   suggestedTargetForUser,
   suspendCommitment,
   useCommitmentJolly,
 } from "@/actions/commitment";
+import { listCharities } from "@/lib/charities";
 import { ActionForm } from "@/components/action-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
