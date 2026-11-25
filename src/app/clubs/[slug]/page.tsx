@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClubChallenge, leaveClub } from "@/actions/clubs";
-import { ActionForm } from "@/components/action-form";
+import { leaveClub } from "@/actions/clubs";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getCurrentProfile } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
 import { weekStartUtc } from "@/lib/credits";
+import { ClubChallengeForm } from "../club-challenge-form";
 
 export default async function ClubDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -98,30 +98,7 @@ export default async function ClubDetailPage({ params }: { params: Promise<{ slu
       </section>
 
       {memberCheck && otherClubs.length > 0 && (
-        <ActionForm
-          action={createClubChallenge}
-          className="flex flex-col gap-3 rounded-xl border bg-card p-4"
-        >
-          {(pending) => (
-            <>
-              <h2 className="font-medium">Sfida km vs km</h2>
-              <input type="hidden" name="club_a" value={club.id} />
-              <select
-                name="club_b"
-                className="h-9 rounded-lg border border-input bg-input/30 px-2.5 text-sm"
-              >
-                {otherClubs.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              <Button type="submit" disabled={pending}>
-                {pending ? "Creazione..." : "Crea mercato di sfida"}
-              </Button>
-            </>
-          )}
-        </ActionForm>
+        <ClubChallengeForm clubId={club.id} otherClubs={otherClubs} />
       )}
 
       {!memberCheck && (

@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClub, joinClub } from "@/actions/clubs";
-import { ActionForm } from "@/components/action-form";
+import { joinClub } from "@/actions/clubs";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { getCurrentProfile } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { CreateClubForm } from "./create-club-form";
 
 export const metadata = { title: "Club · PolyRunner" };
 
@@ -38,18 +37,7 @@ export default async function ClubsPage() {
         </p>
       </div>
 
-      <ActionForm action={createClub} className="flex flex-col gap-3 rounded-xl border bg-card p-4">
-        {(pending) => (
-          <>
-            <h2 className="font-medium">Crea un club</h2>
-            <Input name="name" required placeholder="Gruppo del martedì" minLength={3} />
-            <Input name="description" placeholder="Descrizione (opzionale)" />
-            <Button type="submit" disabled={pending}>
-              {pending ? "Creazione..." : "Crea"}
-            </Button>
-          </>
-        )}
-      </ActionForm>
+      <CreateClubForm />
 
       <div className="flex flex-col rounded-xl border bg-card">
         {clubs.length === 0 && (
