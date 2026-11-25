@@ -65,7 +65,7 @@ export async function createCommitmentPot(
   return { ok: `Pot attivo: ${capped} km o doni ${amount} € a ${charity}` };
 }
 
-export async function useCommitmentJolly(): Promise<ActionResult> {
+export async function claimCommitmentJolly(): Promise<ActionResult> {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "Accedi" };
 

@@ -30,13 +30,11 @@ export function CreateBetForm({
   friends,
   races,
   initialAthleteId,
-  pbs: _pbs,
 }: {
   me: Athlete | null;
   friends: Athlete[];
   races: Race[];
   initialAthleteId?: string;
-  pbs: Record<string, { distance_km: number; time_seconds: number }[]>;
 }) {
   const initialIsFriend = friends.some((f) => f.id === initialAthleteId);
   const initialIsMe = me?.id === initialAthleteId;

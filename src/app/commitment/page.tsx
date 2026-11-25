@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import {
+  claimCommitmentJolly,
   createCommitmentPot,
   resolveCommitmentPots,
   suggestedTargetForUser,
   suspendCommitment,
-  useCommitmentJolly,
 } from "@/actions/commitment";
 import { listCharities } from "@/lib/charities";
 import { ActionForm } from "@/components/action-form";
@@ -70,7 +70,7 @@ export default async function CommitmentPage() {
             <form
               action={async () => {
                 "use server";
-                await useCommitmentJolly();
+                await claimCommitmentJolly();
               }}
             >
               <Button type="submit" size="sm" variant="outline">

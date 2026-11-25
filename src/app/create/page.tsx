@@ -20,27 +20,12 @@ export default async function CreatePage({
   if (!profile) redirect("/login?next=/create");
 
   const { athlete } = await searchParams;
-  const [allFriends, races, pbRows] = await Promise.all([
+  const [allFriends, races] = await Promise.all([
     getFriends(profile.id),
     query<Race>("select * from races where starts_at > now() order by starts_at"),
-    query<{ athlete_id: string; distance_km: number; time_seconds: number }>(
-      `select athlete_id, distance_km, time_seconds from athlete_pbs
-        where athlete_id in (select id from athletes where user_id = $1
-          or id in (
-            select a.id from athletes a
-              join friendships f on f.status = 'accepted'
-               and ((f.user_low = $1 and f.user_high = a.user_id)
-                 or (f.user_high = $1 and f.user_low = a.user_id))
-          ))`,
-      [profile.id],
-    ),
   ]);
   const me = allFriends.find((f) => f.user_id === profile.id) ?? null;
   const friends = allFriends.filter((f) => f.user_id !== profile.id);
-  const pbs: Record<string, { distance_km: number; time_seconds: number }[]> = {};
-  for (const row of pbRows) {
-    (pbs[row.athlete_id] ??= []).push(row);
-  }
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-6">
@@ -71,7 +56,6 @@ export default async function CreatePage({
             friends={friends}
             races={races}
             initialAthleteId={athlete}
-            pbs={pbs}
           />
         )}
       </section>
