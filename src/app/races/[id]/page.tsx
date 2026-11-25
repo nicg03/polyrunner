@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Calendar, MapPin, Ruler } from "lucide-react";
+import { AffiliateBibButton } from "@/components/affiliate-bib-button";
 import { BibRegisterButton } from "@/components/bib-register";
 import { MarketCard } from "@/components/market-card";
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -44,19 +45,21 @@ export default async function RacePage({ params }: { params: Promise<{ id: strin
               <MapPin className="size-4" /> {race.location}
             </span>
           )}
-          <span>{formatVolume(volume)} credits total vol.</span>
-          {bibPrice > 0 && <span>Bib {formatEur(bibPrice)}</span>}
+          <span>{formatVolume(volume)} crediti di volume</span>
+          {bibPrice > 0 && <span>Pettorale {formatEur(bibPrice)}</span>}
+          {race.organizer_sponsor && <span>Sponsor: {race.organizer_sponsor}</span>}
         </div>
-        {bibPrice > 0 && (
-          <div className="mt-4 border-t pt-4">
+        <div className="mt-4 flex flex-wrap gap-2 border-t pt-4">
+          {bibPrice > 0 && (
             <BibRegisterButton
               raceId={id}
               priceEur={bibPrice}
               status={bibEntry?.status ?? "none"}
               isLoggedIn={Boolean(profile)}
             />
-          </div>
-        )}
+          )}
+          <AffiliateBibButton raceId={id} hasUrl={Boolean(race.affiliate_url)} />
+        </div>
       </section>
 
       {markets.length === 0 && (

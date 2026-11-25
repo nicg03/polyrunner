@@ -13,15 +13,20 @@ const MARKET_SELECT = `
     left join athletes a on a.id = m.athlete_id
 `;
 
-export async function getMarkets(opts: { raceId?: string } = {}) {
+const VISIBLE = `(coalesce(m.hidden_by_athlete, false) = false and coalesce(m.approval_status, 'auto') in ('auto', 'approved'))`;
+
+export async function getMarkets(opts: { raceId?: string; includeHidden?: boolean } = {}) {
+  const vis = opts.includeHidden ? "true" : VISIBLE;
   return query<MarketWithRelations>(
-    `${MARKET_SELECT} where ($1::uuid is null or m.race_id = $1::uuid) order by m.closes_at nulls last, m.kind desc, m.created_at`,
+    `${MARKET_SELECT} where ($1::uuid is null or m.race_id = $1::uuid) and ${vis}
+     order by m.closes_at nulls last, m.kind desc, m.created_at`,
     [opts.raceId ?? null],
   );
 }
 
-export async function getMarket(id: string) {
-  return queryOne<MarketWithRelations>(`${MARKET_SELECT} where m.id = $1`, [id]);
+export async function getMarket(id: string, opts: { includeHidden?: boolean } = {}) {
+  const vis = opts.includeHidden ? "true" : VISIBLE;
+  return queryOne<MarketWithRelations>(`${MARKET_SELECT} where m.id = $1 and ${vis}`, [id]);
 }
 
 /** Accepted friends' runner profiles, plus your own. Empty when logged out. */

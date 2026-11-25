@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "PolyRunner",
-  description: "Predict your running friends' race times, Polymarket style.",
+  description: "Pronostica i tempi di gara dei tuoi amici runner.",
 };
 
 export default function RootLayout({
@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="it" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
       <body className="antialiased">
         <Navbar />
         <main className="mx-auto w-full max-w-7xl px-4 pb-16">{children}</main>

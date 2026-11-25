@@ -118,16 +118,19 @@ export function IncomingRequestButtons({ fromUserId }: { fromUserId: string }) {
   );
 }
 
-export function CopyInviteLink({ path }: { path: string }) {
+export function CopyInviteLink({ path, username }: { path?: string; username?: string }) {
   return (
     <Button
       variant="outline"
       onClick={async () => {
-        await navigator.clipboard.writeText(`${window.location.origin}${path}`);
-        toast.success("Link copied: send it to your friends");
+        const invitePath = username
+          ? `/r/${encodeURIComponent(username)}`
+          : path ?? "/friends";
+        await navigator.clipboard.writeText(`${window.location.origin}${invitePath}`);
+        toast.success("Link copiato: +200 crediti a entrambi al primo pronostico");
       }}
     >
-      <Link2 /> Copy my link
+      <Link2 /> Copia link invito
     </Button>
   );
 }

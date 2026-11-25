@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Beer, Clock, Coins, HelpCircle, User, Users } from "lucide-react";
+import { Beer, Clock, Coins, HelpCircle, Target, User, Users } from "lucide-react";
 import { createFriendBet } from "@/actions/markets";
 import { ActionForm } from "@/components/action-form";
 import { Avatar } from "@/components/avatar";
@@ -36,7 +36,6 @@ export function CreateBetForm({
   friends: Athlete[];
   races: Race[];
   initialAthleteId?: string;
-  /** Verified PBs keyed by athlete id (kept for API compat; exact-time markets don't seed brackets). */
   pbs: Record<string, { distance_km: number; time_seconds: number }[]>;
 }) {
   const initialIsFriend = friends.some((f) => f.id === initialAthleteId);
@@ -70,7 +69,7 @@ export function CreateBetForm({
                 onClick={() => setTarget("yourself")}
                 disabled={!me}
               >
-                <User className="size-4" /> Yourself
+                <User className="size-4" /> Te stesso
               </KindButton>
               <KindButton
                 active={target === "friend"}
@@ -80,23 +79,23 @@ export function CreateBetForm({
                 }}
                 disabled={friends.length === 0}
               >
-                <Users className="size-4" /> Other friend
+                <Users className="size-4" /> Un amico
               </KindButton>
             </div>
             {!me && (
               <p className="text-xs text-muted-foreground">
-                Join as a runner first to create a bet on yourself.
+                Diventa runner per creare una scommessa su di te.
               </p>
             )}
             {friends.length === 0 && (
               <p className="text-xs text-muted-foreground">
-                Add friends (and wait for them to accept) to bet on someone else.
+                Aggiungi amici (e attendi l&apos;accettazione) per scommettere su qualcun altro.
               </p>
             )}
           </Field>
 
           {target === "friend" && friends.length > 0 && (
-            <Field label="Which friend">
+            <Field label="Quale amico">
               <div className="flex flex-wrap gap-2">
                 {friends.map((f) => (
                   <button
@@ -124,7 +123,7 @@ export function CreateBetForm({
             value={target === "yourself" ? (me?.id ?? "") : athleteId}
           />
 
-          <Field label="Race">
+          <Field label="Gara">
             <select
               name="race_id"
               value={raceId}
@@ -136,19 +135,19 @@ export function CreateBetForm({
                   {r.name} · {formatDate(r.starts_at)} · {Number(r.distance_km)} km
                 </option>
               ))}
-              <option value="new">+ New race</option>
+              <option value="new">+ Nuova gara</option>
             </select>
           </Field>
 
           {raceId === "new" && (
             <div className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
-              <Field label="Race name">
-                <Input name="new_race_name" required placeholder="Sunday long run 21K" />
+              <Field label="Nome gara">
+                <Input name="new_race_name" required placeholder="Long run domenica 21K" />
               </Field>
-              <Field label="Start time">
+              <Field label="Partenza">
                 <LocalDateTime name="new_race_starts_at" required />
               </Field>
-              <Field label="Distance (km)">
+              <Field label="Distanza (km)">
                 <Input
                   name="new_race_distance_km"
                   required
@@ -158,67 +157,83 @@ export function CreateBetForm({
                   placeholder="21.1"
                 />
               </Field>
-              <Field label="Location (optional)">
-                <Input name="new_race_location" placeholder="Milan" />
+              <Field label="Luogo (opzionale)">
+                <Input name="new_race_location" placeholder="Milano" />
               </Field>
             </div>
           )}
 
-          <Field label="Bet type">
-            <div className="grid grid-cols-2 gap-2">
+          <Field label="Tipo di scommessa">
+            <div className="grid grid-cols-3 gap-2">
               <KindButton active={kind === "time"} onClick={() => setKind("time")}>
-                <Clock className="size-4" /> Finish time
+                <Clock className="size-4" /> Tempo
+              </KindButton>
+              <KindButton active={kind === "goal"} onClick={() => setKind("goal")}>
+                <Target className="size-4" /> Obiettivo
               </KindButton>
               <KindButton active={kind === "custom"} onClick={() => setKind("custom")}>
-                <HelpCircle className="size-4" /> Yes / No
+                <HelpCircle className="size-4" /> Sì / No
               </KindButton>
             </div>
             <input type="hidden" name="kind" value={kind} />
           </Field>
 
-          <Field label="What's at stake">
+          <Field label="In palio">
             <div className="grid grid-cols-2 gap-2">
               <KindButton active={stake === "credits"} onClick={() => setStake("credits")}>
-                <Coins className="size-4" /> Credits
+                <Coins className="size-4" /> Crediti
               </KindButton>
               <KindButton active={stake === "beer"} onClick={() => setStake("beer")}>
-                <Beer className="size-4" /> Beer
+                <Beer className="size-4" /> Birra
               </KindButton>
             </div>
             <input type="hidden" name="stake" value={stake} />
             <p className="text-xs text-muted-foreground">
               {stake === "beer"
-                ? "Same wallet as credits (1 beer = 1 credit), labeled as beers so the loser owes a round among friends."
-                : "Classic PolyRunner credits — not transferable or convertible to money."}
+                ? "Stesso wallet dei crediti (1 birra = 1 credito), etichettato come birre tra amici."
+                : "Crediti PolyRunner — non trasferibili né convertibili in denaro."}
             </p>
           </Field>
 
           {kind === "time" ? (
             <p className="rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-              Friends stake on an <b className="text-foreground">exact finish time</b>. Payout
-              shrinks with the error — no odds or brackets. Credits/beers stay in the virtual
-              wallet.
+              Gli amici puntano su un <b className="text-foreground">tempo esatto</b>. Il payout
+              diminuisce con l&apos;errore — niente quote o fasce.
             </p>
+          ) : kind === "goal" ? (
+            <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
+              <Field label="Obiettivo (es. 1:35:00)">
+                <Input name="goal_time" required placeholder="1:35:00" />
+              </Field>
+              <Field label="% Sì iniziale">
+                <Input name="yes_prob" defaultValue="50" inputMode="decimal" />
+              </Field>
+            </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
-              <Field label="Question">
+              <Field label="Domanda">
                 <Input
                   name="question"
                   required
                   minLength={5}
                   maxLength={140}
-                  placeholder={`Will ${selected?.name ?? "Marco"} stop to walk at any point?`}
+                  placeholder={`${selected?.name ?? "Marco"} camminerà almeno una volta?`}
                 />
               </Field>
-              <Field label="Initial Yes %">
+              <Field label="% Sì iniziale">
                 <Input name="yes_prob" defaultValue="50" inputMode="decimal" />
               </Field>
+              {target === "friend" && (
+                <p className="text-xs text-amber-600 sm:col-span-2">
+                  Le domande libere su un amico richiedono la sua approvazione prima di diventare pubbliche.
+                </p>
+              )}
             </div>
           )}
 
           <p className="text-xs text-muted-foreground">
-            Betting closes when the race starts. After the race, {selected?.name ?? "the runner"}{" "}
-            submits the finish time with a proof and an admin verifies it.
+            Le scommesse chiudono all&apos;inizio della gara. Dopo, {selected?.name ?? "il runner"}{" "}
+            invia il tempo con una prova e un admin lo verifica.
           </p>
 
           <Button
@@ -226,7 +241,7 @@ export function CreateBetForm({
             size="lg"
             disabled={pending || (target === "yourself" ? !me : !athleteId)}
           >
-            {pending ? "Creating..." : "Create bet"}
+            {pending ? "Creazione..." : "Crea scommessa"}
           </Button>
         </>
       )}

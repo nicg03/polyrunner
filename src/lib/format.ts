@@ -1,9 +1,9 @@
-const credits = new Intl.NumberFormat("en-US", {
+const credits = new Intl.NumberFormat("it-IT", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
 
-const compact = new Intl.NumberFormat("en-US", {
+const compact = new Intl.NumberFormat("it-IT", {
   notation: "compact",
   maximumFractionDigits: 1,
 });
@@ -13,8 +13,8 @@ export function formatCredits(value: number): string {
 }
 
 export function stakeUnit(stake: "credits" | "beer", n = 2): string {
-  if (stake === "beer") return n === 1 ? "beer" : "beers";
-  return n === 1 ? "credit" : "credits";
+  if (stake === "beer") return n === 1 ? "birra" : "birre";
+  return n === 1 ? "credito" : "crediti";
 }
 
 export function formatStake(value: number, stake: "credits" | "beer" = "credits"): string {
@@ -53,7 +53,7 @@ export function formatCents(price: number): string {
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
+  return new Date(iso).toLocaleDateString("it-IT", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -61,7 +61,7 @@ export function formatDate(iso: string): string {
 }
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", {
+  return new Date(iso).toLocaleString("it-IT", {
     day: "numeric",
     month: "short",
     hour: "2-digit",
@@ -69,7 +69,7 @@ export function formatDateTime(iso: string): string {
   });
 }
 
-const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+const rtf = new Intl.RelativeTimeFormat("it", { numeric: "auto" });
 
 export function formatRelative(iso: string, now = Date.now()): string {
   const diffSec = (new Date(iso).getTime() - now) / 1000;

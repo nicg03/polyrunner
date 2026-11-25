@@ -1,5 +1,18 @@
 import Link from "next/link";
-import { CalendarDays, Footprints, Plus, Sparkles, Trophy, User, UserPlus, Wallet, Shield } from "lucide-react";
+import {
+  CalendarDays,
+  Footprints,
+  Plus,
+  Sparkles,
+  Trophy,
+  User,
+  UserPlus,
+  Wallet,
+  Shield,
+  Users,
+  Target,
+  Watch,
+} from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getCurrentProfile } from "@/lib/auth";
@@ -22,15 +35,24 @@ export async function Navbar() {
 
         <nav className="flex items-center gap-1 text-sm sm:ml-4">
           <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden sm:inline-flex")}>
-            Markets
+            Mercati
           </Link>
           <Link href="/races" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            <CalendarDays /> <span className="hidden sm:inline">Races</span>
+            <CalendarDays /> <span className="hidden sm:inline">Gare</span>
           </Link>
           {profile && (
             <>
               <Link href="/friends" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                <UserPlus /> <span className="hidden sm:inline">Friends</span>
+                <UserPlus /> <span className="hidden sm:inline">Amici</span>
+              </Link>
+              <Link href="/clubs" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                <Users /> <span className="hidden sm:inline">Club</span>
+              </Link>
+              <Link href="/commitment" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                <Target /> <span className="hidden lg:inline">Commitment</span>
+              </Link>
+              <Link href="/connect-devices" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                <Watch /> <span className="hidden lg:inline">Dispositivi</span>
               </Link>
               <Link href="/premium" className={buttonVariants({ variant: "ghost", size: "sm" })}>
                 <Sparkles /> <span className="hidden sm:inline">Premium</span>
@@ -38,7 +60,7 @@ export async function Navbar() {
             </>
           )}
           <Link href="/leaderboard" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            <Trophy /> <span className="hidden sm:inline">Leaderboard</span>
+            <Trophy /> <span className="hidden sm:inline">Classifica</span>
           </Link>
           {profile?.is_admin && (
             <Link href="/admin" className={buttonVariants({ variant: "ghost", size: "sm" })}>
@@ -51,11 +73,11 @@ export async function Navbar() {
           {profile ? (
             <>
               <Link href="/create" className={buttonVariants({ size: "sm" })}>
-                <Plus /> <span className="hidden sm:inline">Create bet</span>
+                <Plus /> <span className="hidden sm:inline">Crea scommessa</span>
               </Link>
               <Link href="/wallet" className="flex flex-col items-end leading-tight hover:opacity-80">
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  Credits
+                  Crediti
                   {profile.is_premium && (
                     <span className="rounded bg-amber-400/20 px-1 text-[10px] font-semibold text-amber-500">
                       PREMIUM
@@ -75,20 +97,20 @@ export async function Navbar() {
                 <Wallet /> <span className="hidden sm:inline">Wallet</span>
               </Link>
               <Link href="/profile" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                <User /> <span className="hidden sm:inline">Profile</span>
+                <User /> <span className="hidden sm:inline">Profilo</span>
               </Link>
               <Link href="/profile">
                 <Avatar name={profile.username} url={profile.avatar_url} />
               </Link>
               <form action={logout}>
                 <button className="text-xs text-muted-foreground hover:text-foreground">
-                  Log out
+                  Esci
                 </button>
               </form>
             </>
           ) : (
             <Link href="/login" className={buttonVariants({ size: "sm" })}>
-              Log in
+              Accedi
             </Link>
           )}
         </div>

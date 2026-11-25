@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
-import { query } from "@/lib/db";
+import { query, queryOne } from "@/lib/db";
 import { headers } from "next/headers";
 import { appOrigin, getStravaSetupStatus } from "@/lib/strava";
 import { StravaSetup } from "./strava-setup";
+import { AdminViralPanel } from "./viral-panel";
 import {
   AthleteForm,
   CustomMarketForm,
@@ -53,12 +54,12 @@ export default async function AdminPage() {
   const stravaStatus = await getStravaSetupStatus();
   const isStravaConfigured = stravaStatus.source !== null;
 
-  const [races, athletes, markets, stravaUsers, pbClaims] = await Promise.all([
+  const [races, athletes, markets, stravaUsers, pbClaims, kfactor] = await Promise.all([
     query<Race>("select * from races order by starts_at desc"),
     query<Athlete & { user_id: string | null }>("select * from athletes order by name"),
     query<AdminMarket>(
       `select m.id, m.status, m.kind, r.name as race_name,
-              case when m.kind = 'custom' then m.question else 'Finish time: ' || a.name end as title,
+              case when m.kind in ('custom','goal','weekly_freq','weekly_km') then m.question else 'Finish time: ' || a.name end as title,
               (select jsonb_agg(jsonb_build_object('id', o.id, 'label', o.label) order by o.sort_order)
                  from outcomes o where o.market_id = m.id) as outcomes,
               exists (select 1 from strava_accounts s where s.user_id = a.user_id) as strava_linked,
@@ -93,11 +94,21 @@ export default async function AdminPage() {
         where c.status = 'pending'
         order by c.created_at`,
     ),
+    queryOne<{ credited_referrals: number; markets_created: number; k_factor: number }>(
+      `select * from admin_kfactor_stats`,
+    ).catch(() => ({ credited_referrals: 0, markets_created: 0, k_factor: 0 })),
   ]);
 
   return (
     <div className="flex flex-col gap-6 py-6">
       <h1 className="text-2xl font-semibold">Admin</h1>
+
+      <AdminViralPanel
+        kFactor={Number(kfactor?.k_factor ?? 0)}
+        referrals={Number(kfactor?.credited_referrals ?? 0)}
+        markets={Number(kfactor?.markets_created ?? 0)}
+        races={races.map((r) => ({ id: r.id, name: r.name }))}
+      />
 
       <Panel title="Strava setup">
         <StravaSetup status={stravaStatus} origin={origin} />

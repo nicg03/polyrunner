@@ -199,7 +199,7 @@ export function TradePanel({
 
       {!isLoggedIn ? (
         <Link href="/login" className={buttonVariants({ size: "lg", className: "h-11" })}>
-          Log in to trade
+          Fai il tuo pronostico
         </Link>
       ) : (
         <Button
@@ -212,11 +212,11 @@ export function TradePanel({
           onClick={submit}
         >
           {!isOpen
-            ? "Market closed"
+            ? "Mercato chiuso"
             : insufficient
               ? side === "buy"
-                ? "Insufficient balance"
-                : "Not enough shares"
+                ? "Saldo insufficiente"
+                : "Quote insufficienti"
               : pending
                 ? "Submitting..."
                 : side === "buy"

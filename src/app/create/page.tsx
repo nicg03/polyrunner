@@ -9,7 +9,7 @@ import { getFriends } from "@/lib/queries";
 import type { Race } from "@/lib/types";
 import { CreateBetForm } from "./create-bet-form";
 
-export const metadata = { title: "Create a bet · PolyRunner" };
+export const metadata = { title: "Crea scommessa · PolyRunner" };
 
 export default async function CreatePage({
   searchParams,
@@ -45,24 +45,23 @@ export default async function CreatePage({
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-6">
       <div>
-        <h1 className="text-2xl font-semibold">Create a bet</h1>
+        <h1 className="text-2xl font-semibold">Crea una scommessa</h1>
         <p className="text-sm text-muted-foreground">
-          Open a market on your race or a friend&apos;s. Everyone starts trading right away.
+          Apri un mercato sulla tua gara o su quella di un amico.
         </p>
       </div>
 
       <section className="rounded-xl border bg-card p-5">
         {!me && friends.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center text-sm">
-            <p className="font-medium">Nothing to bet on yet</p>
+            <p className="font-medium">Niente su cui scommettere ancora</p>
             <p className="max-w-sm text-muted-foreground">
-              Join as a runner to bet on yourself, or find friends and wait until they accept your
-              request.
+              Diventa runner per scommettere su di te, oppure trova amici e attendi che accettino.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               <JoinRunnerButton />
               <Link href="/friends" className={buttonVariants({ variant: "outline" })}>
-                <UserPlus /> Find friends
+                <UserPlus /> Trova amici
               </Link>
             </div>
           </div>

@@ -1,9 +1,10 @@
 export type RaceStatus = "upcoming" | "closed" | "resolved";
 export type MarketStatus = "open" | "closed" | "resolved";
-export type MarketKind = "time" | "custom";
+export type MarketKind = "time" | "custom" | "goal" | "weekly_freq" | "weekly_km";
 /** What's at stake: same wallet either way; beer is the social label among friends. */
 export type MarketStake = "credits" | "beer";
 export type MarketPricing = "lmsr" | "exact_time";
+export type MarketApprovalStatus = "auto" | "pending" | "approved" | "rejected";
 
 export interface Profile {
   id: string;
@@ -26,6 +27,9 @@ export interface Race {
   image_url: string | null;
   bib_price_eur: number;
   status: RaceStatus;
+  organizer_sponsor?: string | null;
+  pb_refund_budget_eur?: number | null;
+  affiliate_url?: string | null;
 }
 
 export type AthleteCategory = "friend" | "pro";
@@ -68,6 +72,43 @@ export interface Market {
   created_by: string | null;
   volume: number;
   created_at: string;
+  hidden_by_athlete?: boolean;
+  requires_approval?: boolean;
+  approval_status?: MarketApprovalStatus;
+  goal_seconds?: number | null;
+  club_id?: string | null;
+  week_start?: string | null;
+  meta?: Record<string, unknown>;
+}
+
+export interface Referral {
+  invitee_id: string;
+  inviter_id: string;
+  credited_at: string | null;
+  created_at: string;
+}
+
+export interface Club {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface CommitmentPot {
+  id: string;
+  user_id: string;
+  week_start: string;
+  target_km: number;
+  amount_eur: number;
+  charity_name: string;
+  status: "active" | "succeeded" | "failed" | "suspended" | "voided";
+  jolly_used: boolean;
+  payment_ref: string | null;
+  created_at: string;
+  resolved_at: string | null;
 }
 
 export interface TimePrediction {

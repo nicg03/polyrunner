@@ -5,7 +5,9 @@ import Link from "next/link";
 import { CheckCircle2, Clock, HelpCircle, MapPin, Ruler } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { PriceChart, OUTCOME_COLORS, YES_NO_COLORS } from "@/components/price-chart";
+import { MarketAthleteControls } from "@/components/market-athlete-controls";
 import { PredictionPanel } from "@/components/prediction-panel";
+import { ResultShareCard } from "@/components/result-share-card";
 import { SubmitResultForm } from "@/components/submit-result-form";
 import { TradePanel, type TradeOutcome } from "@/components/trade-panel";
 import { cn } from "@/lib/utils";
@@ -48,9 +50,9 @@ export interface VerifiedBy {
 }
 
 const EVIDENCE_LINKS: Record<EvidenceKind, string> = {
-  strava: "Verified with Strava · View activity",
-  official: "Verified with the official results · View results",
-  photo: "Verified with a photo of the watch · View photo",
+  strava: "Verificato con Strava · Vedi attività",
+  official: "Verificato con la classifica ufficiale · Vedi risultati",
+  photo: "Verificato con foto dell'orologio · Vedi foto",
 };
 
 export function MarketView({
@@ -67,6 +69,8 @@ export function MarketView({
   submitResult,
   myPrediction = null,
   predictionParams = { maxErrorSeconds: 600, maxMultiplier: 2 },
+  isAthleteSubject = false,
+  marketConsensusSeconds = null,
 }: {
   market: Market;
   race: Race;
@@ -81,6 +85,8 @@ export function MarketView({
   submitResult: { myClaim: { status: ClaimStatus; time_seconds: number } | null } | null;
   myPrediction?: TimePrediction | null;
   predictionParams?: { maxErrorSeconds: number; maxMultiplier: number };
+  isAthleteSubject?: boolean;
+  marketConsensusSeconds?: number | null;
 }) {
   const isCustom = market.kind === "custom";
   const isExact = market.pricing === "exact_time";
@@ -137,31 +143,40 @@ export function MarketView({
               <span className="flex items-center gap-1">
                 <Clock className="size-3" />
                 {resolved
-                  ? "Resolved"
+                  ? "Risolto"
                   : isOpen && market.closes_at
-                    ? `Closes ${formatRelative(market.closes_at)}`
-                    : `Race on ${formatDate(race.starts_at)}`}
+                    ? `Chiude ${formatRelative(market.closes_at)}`
+                    : `Gara il ${formatDate(race.starts_at)}`}
               </span>
             </div>
           </div>
         </div>
+
+        {isAthleteSubject && (
+          <MarketAthleteControls
+            marketId={market.id}
+            approvalStatus={market.approval_status ?? "auto"}
+            hidden={Boolean(market.hidden_by_athlete)}
+            canManage
+          />
+        )}
 
         {resolved && market.actual_time_seconds != null && (
           <div className="flex items-center gap-3 rounded-xl border border-yes/40 bg-yes/10 p-4">
             <CheckCircle2 className="size-6 text-yes" />
             <div>
               <p className="font-semibold">
-                Official time: {formatTime(market.actual_time_seconds)}{" "}
+                Tempo ufficiale: {formatTime(market.actual_time_seconds)}{" "}
                 <span className="font-normal text-muted-foreground">
                   ({formatPace(market.actual_time_seconds, Number(race.distance_km))})
                 </span>
               </p>
               {winner && !isExact && (
-                <p className="text-sm text-muted-foreground">Winning bracket: {winner.label}</p>
+                <p className="text-sm text-muted-foreground">Fascia vincente: {winner.label}</p>
               )}
               {isExact && (
                 <p className="text-sm text-muted-foreground">
-                  Predictions settled by how close each guess was — no odds.
+                  I pronostici sono stati liquidati in base alla distanza dal tempo reale.
                 </p>
               )}
               {verifiedBy ? (
@@ -187,17 +202,27 @@ export function MarketView({
                   rel="noreferrer"
                   className="mt-1 inline-block text-sm font-medium text-[#fc5200] hover:underline"
                 >
-                  Verified with Strava · View on Strava
+                  Verificato con Strava · Apri su Strava
                 </a>
               ) : null}
             </div>
           </div>
         )}
 
+        {resolved && market.actual_time_seconds != null && (
+          <ResultShareCard
+            runnerName={athlete?.name ?? "Runner"}
+            raceName={race.name}
+            actualSeconds={market.actual_time_seconds}
+            marketConsensusSeconds={marketConsensusSeconds}
+            marketConsensusLabel={winner && !isExact ? winner.label : null}
+          />
+        )}
+
         {resolved && isCustom && winner && !market.actual_time_seconds && (
           <div className="flex items-center gap-3 rounded-xl border border-yes/40 bg-yes/10 p-4">
             <CheckCircle2 className="size-6 text-yes" />
-            <p className="font-semibold">Resolved: {winner.label}</p>
+            <p className="font-semibold">Risolto: {winner.label}</p>
           </div>
         )}
 

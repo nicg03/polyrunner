@@ -23,13 +23,17 @@ async function awardBonus(marketId: string) {
   if (!reward) return "";
   const parts: string[] = [];
   if (reward.reward_kind === "personal_best") {
-    parts.push(` Personal best! The athlete earned ${reward.reward_amount} credits.`);
+    parts.push(` Personal best! L'atleta ha guadagnato ${reward.reward_amount} crediti.`);
   } else if (reward.reward_kind === "steady") {
-    parts.push(` Steady run: the athlete earned ${reward.reward_amount} credits.`);
+    parts.push(` Corsa costante: ${reward.reward_amount} crediti.`);
+  } else if (reward.reward_kind === "personal_improvement") {
+    parts.push(` Miglioramento personale: ${reward.reward_amount} crediti.`);
+  } else if (reward.reward_kind === "first_finish") {
+    parts.push(` Prima volta su questa distanza: ${reward.reward_amount} crediti.`);
   }
   if (reward.bib_refund_eur != null && Number(reward.bib_refund_eur) > 0) {
     parts.push(
-      ` Premium PB: PolyRunner refunded €${Number(reward.bib_refund_eur).toFixed(2)} to their EUR wallet.`,
+      ` Premium PB: rimborsati €${Number(reward.bib_refund_eur).toFixed(2)} sul wallet EUR.`,
     );
   }
   return parts.join("");

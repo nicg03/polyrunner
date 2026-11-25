@@ -161,8 +161,11 @@ export function PredictionPanel({
       )}
 
       {!isLoggedIn ? (
-        <Link href="/login" className={buttonVariants({ size: "lg", className: "h-11" })}>
-          Log in to predict
+        <Link
+          href={`/login?next=${encodeURIComponent(`/markets/${marketId}`)}`}
+          className={buttonVariants({ size: "lg", className: "h-11" })}
+        >
+          Fai il tuo pronostico
         </Link>
       ) : (
         <Button
@@ -172,17 +175,17 @@ export function PredictionPanel({
           onClick={submit}
         >
           {!isOpen
-            ? "Market closed"
+            ? "Mercato chiuso"
             : insufficient
-              ? "Insufficient balance"
+              ? "Saldo insufficiente"
               : pending
-                ? "Submitting..."
-                : "Lock prediction"}
+                ? "Invio..."
+                : "Blocca pronostico"}
         </Button>
       )}
 
       <p className="text-center text-[11px] text-muted-foreground">
-        Virtual credits only — not transferable, not convertible to money.
+        Solo crediti virtuali — non trasferibili, non convertibili in denaro.
       </p>
     </div>
   );

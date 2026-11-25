@@ -17,7 +17,7 @@ import {
 import type { Athlete } from "@/lib/types";
 import { CopyInviteLink, FriendButton, IncomingRequestButtons } from "./friend-buttons";
 
-export const metadata = { title: "Friends · PolyRunner" };
+export const metadata = { title: "Amici · PolyRunner" };
 
 export default async function FriendsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const profile = await getCurrentProfile();
@@ -39,20 +39,20 @@ export default async function FriendsPage({ searchParams }: { searchParams: Prom
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-6">
       <div>
-        <h1 className="text-2xl font-semibold">Friends</h1>
+        <h1 className="text-2xl font-semibold">Amici</h1>
         <p className="text-sm text-muted-foreground">
-          Search runners and send a request. Both of you must accept before you show up in each
-          other&apos;s Friends section and bets.
+          Cerca runner e invia una richiesta. Dovete accettarvi a vicenda prima di comparire
+          tra gli amici e nelle scommesse.
         </p>
       </div>
 
       <section className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4 text-sm">
         <p className="min-w-0 flex-1 text-muted-foreground">
           {me
-            ? "Send your link to your running buddies so they can find you and add you."
-            : "Join as a runner so your friends can find you and bet on your races."}
+            ? "Invia il tuo link: tu e chi si iscrive ricevete +200 crediti al primo pronostico."
+            : "Diventa runner così gli amici possono trovarti e scommettere sulle tue gare."}
         </p>
-        {me ? <CopyInviteLink path={`/friends?q=${encodeURIComponent(profile.username)}`} /> : <JoinRunnerButton />}
+        {me ? <CopyInviteLink username={profile.username} /> : <JoinRunnerButton />}
       </section>
 
       {incoming.length > 0 && (

@@ -12,14 +12,35 @@ import type { ClaimStatus, PriceSnapshot, TimePrediction } from "@/lib/types";
 export default async function MarketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const market = await getMarket(id);
-  if (!market) notFound();
 
   const profile = await getCurrentProfile();
+  // Athlete subject / creator / admin can see pending/hidden markets
+  let market = await getMarket(id, { includeHidden: true });
+  if (!market) notFound();
+
+  const isAthleteSubject = Boolean(profile && market.athlete?.user_id === profile.id);
+  const canSeeHidden =
+    isAthleteSubject ||
+    Boolean(profile?.is_admin) ||
+    Boolean(profile && market.created_by === profile.id);
+
+  const visible =
+    !market.hidden_by_athlete &&
+    (market.approval_status == null ||
+      market.approval_status === "auto" ||
+      market.approval_status === "approved");
+
+  if (!visible && !canSeeHidden) notFound();
+
+  // Public visitors use filtered getMarket; already loaded with includeHidden
+  if (!canSeeHidden) {
+    market = (await getMarket(id)) ?? market;
+  }
+
   const isExact = market.pricing === "exact_time";
   const raceStarted = new Date(market.race.starts_at) <= new Date();
 
-  const [myClaim, verifiedBy] = await Promise.all([
+  const [myClaim, verifiedBy, medianRow] = await Promise.all([
     profile && market.kind === "time" && market.status !== "resolved"
       ? queryOne<{ status: ClaimStatus; time_seconds: number }>(
           `select status, time_seconds from result_claims
@@ -32,12 +53,21 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
           market.result_claim_id,
         ])
       : Promise.resolve(null),
+    isExact
+      ? queryOne<{ median: number | null }>(
+          `select percentile_cont(0.5) within group (order by predicted_seconds) as median
+             from time_predictions where market_id = $1`,
+          [id],
+        )
+      : Promise.resolve(null),
   ]);
 
   const submitResult =
     profile && market.kind === "time" && market.status !== "resolved" && raceStarted
       ? { myClaim }
       : null;
+
+  const marketConsensusSeconds = medianRow?.median != null ? Number(medianRow.median) : null;
 
   if (isExact) {
     const [predictions, myPrediction, params] = await Promise.all([
@@ -85,6 +115,8 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
           submitResult={submitResult}
           myPrediction={myPrediction}
           predictionParams={params}
+          isAthleteSubject={isAthleteSubject}
+          marketConsensusSeconds={marketConsensusSeconds}
         />
       </>
     );
@@ -139,6 +171,8 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
         isLoggedIn={Boolean(profile)}
         verifiedBy={verifiedBy}
         submitResult={submitResult}
+        isAthleteSubject={isAthleteSubject}
+        marketConsensusSeconds={null}
       />
     </>
   );

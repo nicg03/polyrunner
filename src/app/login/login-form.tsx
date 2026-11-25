@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ActionForm } from "@/components/action-form";
 import { Button } from "@/components/ui/button";
@@ -8,16 +8,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { login, register } from "@/actions/auth";
+import { captureReferral, login, register } from "@/actions/auth";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/";
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const ref = searchParams.get("ref") ?? "";
+  const [mode, setMode] = useState<"login" | "register">(ref ? "register" : "login");
+
+  useEffect(() => {
+    if (ref) void captureReferral(ref);
+  }, [ref]);
 
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
+        {ref && (
+          <p className="rounded-lg bg-yes/10 px-3 py-2 text-sm text-yes">
+            Invito attivo: tu e chi ti ha invitato riceverete +200 crediti al primo pronostico.
+          </p>
+        )}
         <div className="grid grid-cols-2 rounded-lg bg-muted p-1 text-sm">
           {(["login", "register"] as const).map((m) => (
             <button
@@ -29,7 +39,7 @@ export function LoginForm() {
                 mode === m ? "bg-background text-foreground" : "text-muted-foreground",
               )}
             >
-              {m === "login" ? "Log in" : "Sign up"}
+              {m === "login" ? "Accedi" : "Registrati"}
             </button>
           ))}
         </div>
@@ -43,6 +53,7 @@ export function LoginForm() {
           {(pending) => (
             <>
               <input type="hidden" name="next" value={next} />
+              <input type="hidden" name="ref" value={ref} />
               <div className="flex flex-col gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -51,7 +62,7 @@ export function LoginForm() {
                   type={mode === "register" ? "email" : "text"}
                   required
                   autoComplete={mode === "login" ? "username" : "email"}
-                  placeholder="you@example.com"
+                  placeholder="tu@email.com"
                 />
               </div>
               {mode === "register" && (
@@ -62,7 +73,7 @@ export function LoginForm() {
                     name="username"
                     required
                     autoComplete="nickname"
-                    placeholder="e.g. gazelle_92"
+                    placeholder="es. gazelle_92"
                     maxLength={24}
                   />
                 </div>
@@ -79,7 +90,7 @@ export function LoginForm() {
                 />
               </div>
               <Button type="submit" size="lg" disabled={pending}>
-                {pending ? "Please wait..." : mode === "login" ? "Log in" : "Create account"}
+                {pending ? "Attendi..." : mode === "login" ? "Accedi" : "Crea account"}
               </Button>
             </>
           )}

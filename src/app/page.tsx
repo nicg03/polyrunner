@@ -67,14 +67,14 @@ export default async function HomePage({
       <AutoRefresh intervalMs={15000} />
 
       <section className="rounded-2xl border bg-gradient-to-br from-primary/20 via-card to-card p-6">
-        <h1 className="text-2xl font-semibold sm:text-3xl">How fast will they run?</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl">Quanto correranno?</h1>
         <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-          Bet virtual credits on your friends&apos; exact finish times (no odds shown) and on
-          Pros / Yes-No markets. Credits are not transferable or convertible to money.
+          Scommetti crediti virtuali sul tempo esatto dei tuoi amici e su mercati Sì/No.
+          I crediti non sono trasferibili né convertibili in denaro.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link href="/races?bib=1" className={buttonVariants({ size: "sm" })}>
-            Find races for a PB refund
+            Trova gare con rimborso PB
           </Link>
           {profile && (
             <Link href="/premium" className={buttonVariants({ size: "sm", variant: "outline" })}>

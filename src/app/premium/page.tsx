@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { stubPremiumCheckout } from "@/actions/commerce";
 import { PremiumProgress } from "@/components/premium-progress";
 import { StravaCard } from "@/components/strava-card";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { getCurrentProfile } from "@/lib/auth";
 import { getAppSetting, weekStartUtc } from "@/lib/credits";
-import { query, queryOne } from "@/lib/db";
+import { queryOne } from "@/lib/db";
 import { formatCredits } from "@/lib/format";
 import { isStravaConfigured } from "@/lib/strava";
 
@@ -44,10 +45,27 @@ export default async function PremiumPage() {
       <div>
         <h1 className="text-2xl font-semibold">Premium</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Earn virtual credits → unlock Premium → register a race bib → beat your personal best →
-          get the bib refunded by PolyRunner (EUR wallet ledger).
+          Guadagna crediti virtuali oppure sblocca con pagamento (stub). Poi registra un pettorale,
+          batti il PB e ricevi il rimborso sul wallet EUR.
         </p>
       </div>
+
+      {!profile.is_premium && (
+        <form
+          action={async () => {
+            "use server";
+            await stubPremiumCheckout();
+          }}
+          className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4"
+        >
+          <p className="mb-2 text-sm">
+            Sblocca Premium a 4,99 € (pagamento simulato — nessun addebito reale).
+          </p>
+          <Button type="submit" size="sm">
+            Paga con carta (stub)
+          </Button>
+        </form>
+      )}
 
       <PremiumProgress
         isPremium={profile.is_premium}
