@@ -4,14 +4,16 @@ import { getCurrentProfile } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { getRaces } from "@/lib/queries";
 
-export const metadata = { title: "Races · PolyRunner" };
+export const metadata = { title: "Gare · PolyRunner" };
+
+const DISTANCES = new Set(["all", "10k", "half", "marathon", "other"]);
 
 export default async function RacesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; bib?: string }>;
+  searchParams: Promise<{ q?: string; bib?: string; distance?: string }>;
 }) {
-  const { q = "", bib } = await searchParams;
+  const { q = "", bib, distance: distanceParam } = await searchParams;
   const profile = await getCurrentProfile();
   const races = await getRaces();
 
@@ -23,16 +25,20 @@ export default async function RacesPage({
     : [];
 
   const bibByRace = Object.fromEntries(bibRows.map((b) => [b.race_id, b.status]));
+  const initialDistance =
+    distanceParam && DISTANCES.has(distanceParam)
+      ? (distanceParam as "all" | "10k" | "half" | "marathon" | "other")
+      : "all";
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 py-6">
       <div>
-        <h1 className="text-2xl font-semibold">Races</h1>
+        <h1 className="text-2xl font-semibold">Gare</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Search races by name, city, or distance. Filter those with a bib fee to chase a personal
-          best — Premium runners get an automatic refund.{" "}
+          Cerca per nome, città o distanza. Filtra le mezze e le maratone, oppure quelle con
+          pettorale per inseguire un PB — i runner Premium ricevono il rimborso automatico.{" "}
           <Link href="/premium" className="text-primary hover:underline">
-            Premium explained →
+            Premium spiegato →
           </Link>
         </p>
       </div>
@@ -44,6 +50,7 @@ export default async function RacesPage({
         isPremium={Boolean(profile?.is_premium)}
         initialQuery={q}
         initialBibOnly={bib === "1" || bib === "true"}
+        initialDistance={initialDistance}
       />
     </div>
   );
