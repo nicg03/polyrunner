@@ -11,7 +11,7 @@ import type { ActionResult } from "@/lib/types";
 
 const CHARITIES = ["Fondazione Veronesi", "Emergency", "AIRC", "Medici Senza Frontiere"];
 
-export function listCharities() {
+export async function listCharities() {
   return CHARITIES;
 }
 
