@@ -19,8 +19,12 @@ const geistMono = Geist_Mono({
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "PolyRunner",
-  description: "Pronostica i tempi di gara dei tuoi amici runner.",
+  title: {
+    default: "PolyRunner",
+    template: "%s · PolyRunner",
+  },
+  description:
+    "Pronostica i tempi di gara dei tuoi amici con crediti virtuali. Un gioco sociale per runner.",
 };
 
 export default function RootLayout({

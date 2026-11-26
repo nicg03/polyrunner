@@ -190,7 +190,7 @@ export default async function WalletPage() {
         {open.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
             No open positions.{" "}
-            <Link href="/" className="text-primary hover:underline">
+            <Link href="/markets" className="text-primary hover:underline">
               Browse markets
             </Link>
           </p>

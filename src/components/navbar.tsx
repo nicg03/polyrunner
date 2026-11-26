@@ -34,7 +34,7 @@ export async function Navbar() {
         </Link>
 
         <nav className="flex items-center gap-1 text-sm sm:ml-4">
-          <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden sm:inline-flex")}>
+          <Link href="/markets" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden sm:inline-flex")}>
             Mercati
           </Link>
           <Link href="/races" className={buttonVariants({ variant: "ghost", size: "sm" })}>

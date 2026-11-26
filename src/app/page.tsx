@@ -1,212 +1,230 @@
 import Link from "next/link";
-import { LayoutGrid, Plus, Star, UserPlus, Users } from "lucide-react";
-import { MarketCard } from "@/components/market-card";
-import { AutoRefresh } from "@/components/auto-refresh";
-import { Avatar } from "@/components/avatar";
-import { JoinRunnerButton } from "@/components/join-runner-button";
-import { SetupNotice } from "@/components/setup-notice";
+import { Footprints, Timer, Users, Wallet } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentProfile } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import { getFriends, getMarkets, getRaces, isUuid } from "@/lib/queries";
-import { isDatabaseConfigured } from "@/lib/db";
-import type { Athlete } from "@/lib/types";
 
-export const dynamic = "force-dynamic";
+export const metadata = {
+  title: {
+    absolute: "PolyRunner — Pronostica i tempi dei tuoi amici",
+  },
+  description:
+    "PolyRunner è un gioco sociale per runner: pronostica i tempi di gara degli amici con crediti virtuali. Nessun denaro reale nei mercati.",
+};
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ race?: string; status?: string; type?: string; section?: string }>;
-}) {
-  if (!isDatabaseConfigured) return <SetupNotice />;
-
-  const { race, status = "open", type, section } = await searchParams;
+export default async function LandingPage() {
   const profile = await getCurrentProfile();
-  const [allMarkets, races, friends] = await Promise.all([
-    getMarkets({ raceId: race && isUuid(race) ? race : undefined }),
-    getRaces(),
-    getFriends(profile?.id ?? null),
-  ]);
-  const friendIds = new Set(friends.map((f) => f.id));
-  const invite = !profile
-    ? ("signup" as const)
-    : friends.some((f) => f.user_id === profile.id)
-      ? null
-      : ("join" as const);
-  const category = section === "friends" ? "friend" : section === "pros" ? "pro" : null;
-  const markets = allMarkets.filter(
-    (m) =>
-      (status === "resolved" ? m.status === "resolved" : m.status !== "resolved") &&
-      (!type ||
-        (type === "beer" ? m.stake === "beer" : m.kind === type)) &&
-      (!category || m.athlete?.category === category) &&
-      (category !== "friend" || friendIds.has(m.athlete!.id)),
-  );
-
-  const chip = (active: boolean) =>
-    cn(
-      "shrink-0 rounded-full border px-3 py-1 text-sm transition-colors",
-      active
-        ? "border-primary bg-primary/15 text-foreground"
-        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-    );
-
-  const href = (params: { race?: string; status?: string; type?: string; section?: string }) => {
-    const sp = new URLSearchParams();
-    if (params.section) sp.set("section", params.section);
-    if (params.race) sp.set("race", params.race);
-    if (params.status && params.status !== "open") sp.set("status", params.status);
-    if (params.type) sp.set("type", params.type);
-    const s = sp.toString();
-    return s ? `/?${s}` : "/";
-  };
 
   return (
-    <div className="flex flex-col gap-6 py-6">
-      <AutoRefresh intervalMs={15000} />
+    <div className="relative left-1/2 w-screen -translate-x-1/2">
+      {/* Hero */}
+      <section className="landing-hero relative isolate overflow-hidden border-b border-border/60">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_20%,rgba(45,108,245,0.28),transparent_55%),radial-gradient(ellipse_50%_40%_at_10%_80%,rgba(39,174,96,0.12),transparent_50%)]"
+        />
+        <div
+          aria-hidden
+          className="landing-grid pointer-events-none absolute inset-0 opacity-[0.35]"
+        />
+        <div
+          aria-hidden
+          className="landing-lane pointer-events-none absolute inset-y-0 right-[-8%] hidden w-[55%] md:block"
+        />
 
-      <section className="rounded-2xl border bg-gradient-to-br from-primary/20 via-card to-card p-6">
-        <h1 className="text-2xl font-semibold sm:text-3xl">Quanto correranno?</h1>
-        <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-          Scommetti crediti virtuali sul tempo esatto dei tuoi amici e su mercati Sì/No.
-          I crediti non sono trasferibili né convertibili in denaro.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/races?bib=1" className={buttonVariants({ size: "sm" })}>
-            Trova gare con rimborso PB
-          </Link>
-          {profile && (
-            <Link href="/premium" className={buttonVariants({ size: "sm", variant: "outline" })}>
-              Premium progress
-            </Link>
-          )}
+        <div className="relative mx-auto flex min-h-[calc(100svh-3.5rem)] max-w-7xl flex-col justify-center px-4 py-16 sm:py-20">
+          <div className="landing-fade max-w-2xl">
+            <p className="mb-5 flex items-center gap-2 text-sm font-medium tracking-wide text-primary">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <Footprints className="size-4" />
+              </span>
+              PolyRunner
+            </p>
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl sm:leading-[1.1]">
+              Pronostica i tempi di gara dei tuoi amici
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
+              Un gioco sociale per runner: scommetti crediti virtuali sul tempo esatto di una
+              gara, confrontati con gli amici e festeggia il risultato. Solo per divertimento —
+              i crediti non valgono denaro.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              {profile ? (
+                <Link href="/markets" className={cn(buttonVariants({ size: "lg" }), "h-11 px-5")}>
+                  Vai ai mercati
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className={cn(buttonVariants({ size: "lg" }), "h-11 px-5")}
+                  >
+                    Inizia gratis
+                  </Link>
+                  <Link
+                    href="/markets"
+                    className={cn(buttonVariants({ size: "lg", variant: "outline" }), "h-11 px-5")}
+                  >
+                    Esplora i mercati
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div
+            aria-hidden
+            className="landing-fade-delay pointer-events-none absolute bottom-10 right-4 hidden w-[min(420px,42vw)] lg:block"
+          >
+            <HeroPreview />
+          </div>
         </div>
       </section>
 
-      <nav className="flex gap-1 border-b">
-        {SECTIONS.map((s) => (
-          <Link
-            key={s.label}
-            href={href({ section: s.id, race, status, type })}
-            className={cn(
-              "-mb-px flex items-center gap-2 border-b-2 px-3 pb-2.5 text-sm font-medium transition-colors",
-              section === s.id || (!s.id && !category)
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+      {/* Come funziona */}
+      <section className="border-b border-border/60 bg-background">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:py-24">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Come funziona</h2>
+          <p className="mt-2 max-w-xl text-muted-foreground">
+            Tre passaggi. Niente complicazioni.
+          </p>
+
+          <ol className="mt-12 grid gap-10 sm:grid-cols-3 sm:gap-8">
+            {STEPS.map((step, i) => (
+              <li key={step.title} className="relative">
+                <span className="text-xs font-medium uppercase tracking-wider text-primary">
+                  Passo {i + 1}
+                </span>
+                <h3 className="mt-2 text-lg font-semibold">{step.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Cosa puoi fare */}
+      <section className="border-b border-border/60">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:py-24">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Cosa puoi fare</h2>
+          <p className="mt-2 max-w-xl text-muted-foreground">
+            Il cuore del prodotto è il pronostico tra amici. Il resto serve a renderlo più vivo.
+          </p>
+
+          <ul className="mt-12 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((f) => (
+              <li key={f.title} className="flex gap-4">
+                <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                  <f.icon className="size-5" />
+                </span>
+                <div>
+                  <h3 className="font-semibold">{f.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* Chiarimento crediti */}
+      <section className="border-b border-border/60 bg-card/40">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:py-20">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-semibold tracking-tight">Solo crediti virtuali</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Ogni account parte con crediti di gioco. Non sono trasferibili tra utenti e non
+              sono convertibili in denaro. Puoi etichettarli anche come «birre» per chiudere il
+              conto tra amici nella vita reale — ma i mercati restano un gioco.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA finale */}
+      <section>
+        <div className="mx-auto flex max-w-7xl flex-col items-start gap-6 px-4 py-20 sm:py-24">
+          <h2 className="max-w-lg text-2xl font-semibold tracking-tight sm:text-3xl">
+            Pronto a indovinare chi arriva sotto le due ore?
+          </h2>
+          <p className="max-w-md text-muted-foreground">
+            Entra, collega gli amici runner e crea la prima scommessa sulla prossima gara.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {profile ? (
+              <Link href="/markets" className={cn(buttonVariants({ size: "lg" }), "h-11 px-5")}>
+                Apri i mercati
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className={cn(buttonVariants({ size: "lg" }), "h-11 px-5")}>
+                  Crea un account
+                </Link>
+                <Link
+                  href="/markets"
+                  className={cn(buttonVariants({ size: "lg", variant: "outline" }), "h-11 px-5")}
+                >
+                  Guarda un mercato
+                </Link>
+              </>
             )}
-          >
-            <s.icon className="size-4" /> {s.label}
-          </Link>
-        ))}
-      </nav>
-
-      {section === "friends" && <FriendsStrip friends={friends} invite={invite} />}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Link href={href({ section, status, type })} className={chip(!race)}>
-          All races
-        </Link>
-        {races.map((r) => (
-          <Link key={r.id} href={href({ section, race: r.id, status, type })} className={chip(race === r.id)}>
-            {r.name}
-          </Link>
-        ))}
-      </div>
-
-      <div className="-mt-3 flex flex-wrap items-center gap-2">
-        <Link href={href({ section, race, status })} className={chip(!type)}>
-          All bets
-        </Link>
-        <Link href={href({ section, race, status, type: "time" })} className={chip(type === "time")}>
-          Finish times
-        </Link>
-        <Link href={href({ section, race, status, type: "custom" })} className={chip(type === "custom")}>
-          Yes / No
-        </Link>
-        <Link href={href({ section, race, status, type: "beer" })} className={chip(type === "beer")}>
-          Beer
-        </Link>
-        <div className="ml-auto flex gap-2">
-          <Link href={href({ section, race, type, status: "open" })} className={chip(status !== "resolved")}>
-            Active
-          </Link>
-          <Link
-            href={href({ section, race, type, status: "resolved" })}
-            className={chip(status === "resolved")}
-          >
-            Resolved
-          </Link>
+          </div>
         </div>
-      </div>
-
-      {markets.length === 0 ? (
-        <p className="py-16 text-center text-muted-foreground">
-          {category === "pro"
-            ? "No pro markets yet."
-            : category === "friend"
-              ? profile
-                ? "No bets on your friends yet. Add friends or create the first bet!"
-                : "No bets on friends yet. Create the first one!"
-              : "No markets here yet."}
-        </p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {markets.map((m) => (
-            <MarketCard key={m.id} market={m} />
-          ))}
-        </div>
-      )}
+      </section>
     </div>
   );
 }
 
-const SECTIONS = [
-  { id: undefined, label: "All markets", icon: LayoutGrid },
-  { id: "friends", label: "Friends", icon: Users },
-  { id: "pros", label: "Pros", icon: Star },
+const STEPS = [
+  {
+    title: "Aggiungi i tuoi amici",
+    body: "Cerca runner per nome o username e accettatevi a vicenda. Solo chi è nella tua cerchia può diventare oggetto di un mercato tra amici.",
+  },
+  {
+    title: "Crea o entra in un mercato",
+    body: "Scegli una gara e un atleta. Pronostica il tempo di arrivo esatto, oppure rispondi a una domanda Sì/No legata alla corsa.",
+  },
+  {
+    title: "Vedi chi ci azzecca",
+    body: "Dopo la gara il risultato viene verificato. Chi si è avvicinato di più al tempo reale guadagna più crediti. Poi si riparte.",
+  },
 ];
 
-function FriendsStrip({ friends, invite }: { friends: Athlete[]; invite: "signup" | "join" | null }) {
+const FEATURES = [
+  {
+    icon: Timer,
+    title: "Tempi di arrivo",
+    body: "Indovina il finish time: più sei preciso, più guadagni. Niente quote confuse — conta l’errore assoluto.",
+  },
+  {
+    icon: Users,
+    title: "Cerchia di amici",
+    body: "Leaderboard e scommesse restano tra chi si conosce. Puoi anche seguire mercati su atleti Pro selezionati.",
+  },
+  {
+    icon: Wallet,
+    title: "Wallet e progressi",
+    body: "Segui saldo, posizioni aperte e storico. Correndo e collegando Strava guadagni crediti; con Premium sblocchi vantaggi extra.",
+  },
+];
+
+function HeroPreview() {
   return (
-    <section className="flex flex-wrap items-center gap-4 rounded-xl border bg-card p-4">
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-        {friends.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {invite === "signup"
-              ? "Log in to see your friends and bet on their races."
-              : "No friends yet. Find runners, send a request, and wait until they accept."}
-          </p>
-        ) : (
-          friends.map((f) => (
-            <Link
-              key={f.id}
-              href={`/create?athlete=${f.id}`}
-              title={`Create a bet on ${f.name}`}
-              className="flex flex-col items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <Avatar name={f.name} url={f.avatar_url} size={40} />
-              <span className="max-w-16 truncate">{f.name}</span>
-            </Link>
-          ))
-        )}
+    <div className="landing-preview rounded-2xl border border-border/80 bg-card/80 p-5 shadow-[0_24px_80px_-32px_rgba(0,0,0,0.7)] backdrop-blur-sm">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>Milano Marathon · 42K</span>
+        <span className="rounded-md bg-yes/15 px-2 py-0.5 font-medium text-yes">Aperto</span>
       </div>
-      {invite === "signup" && (
-        <Link href={`/login?next=${encodeURIComponent("/?section=friends")}`} className={buttonVariants()}>
-          Sign up to join
-        </Link>
-      )}
-      {invite === "join" && <JoinRunnerButton variant="outline" />}
-      {invite !== "signup" && (
-        <Link href="/friends" className={buttonVariants({ variant: "outline" })}>
-          <UserPlus /> Find friends
-        </Link>
-      )}
-      {invite !== "signup" && friends.length > 0 && (
-        <Link href="/create" className={buttonVariants()}>
-          <Plus /> Create a bet
-        </Link>
-      )}
-    </section>
+      <p className="mt-3 text-sm font-medium">Quanto farà Sara?</p>
+      <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">3:18:40</p>
+      <p className="mt-1 text-xs text-muted-foreground">Consenso degli amici</p>
+      <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div className="landing-bar h-full w-[68%] rounded-full bg-primary" />
+      </div>
+      <div className="mt-3 flex justify-between text-[11px] text-muted-foreground">
+        <span>12 pronostici</span>
+        <span>±4:20 di spread</span>
+      </div>
+    </div>
   );
 }
