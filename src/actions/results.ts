@@ -13,7 +13,7 @@ function str(formData: FormData, key: string) {
 
 export async function submitResult(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const profile = await getCurrentProfile();
-  if (!profile) return { error: "Log in to submit a result" };
+  if (!profile) return { error: "Accedi per inviare un risultato" };
 
   const marketId = str(formData, "market_id");
   try {
@@ -23,12 +23,12 @@ export async function submitResult(_prev: ActionResult, formData: FormData): Pro
         where m.id = $1 and m.kind = 'time'`,
       [marketId],
     );
-    if (!market) throw new Error("Market not found");
-    if (market.status === "resolved") throw new Error("This market is already resolved");
-    if (!market.started) throw new Error("You can submit the result once the race has started");
+    if (!market) throw new Error("Mercato non trovato");
+    if (market.status === "resolved") throw new Error("Questo mercato è già risolto");
+    if (!market.started) throw new Error("Puoi inviare il risultato quando la gara è iniziata");
 
     const seconds = parseTime(str(formData, "time"));
-    if (!seconds) throw new Error("Invalid time (use mm:ss or h:mm:ss)");
+    if (!seconds) throw new Error("Tempo non valido (usa mm:ss o h:mm:ss)");
 
     const kind = str(formData, "evidence_kind") as EvidenceKind;
     const { evidence_url, photo, photo_type } = await parseEvidence(formData, kind);
@@ -48,18 +48,18 @@ export async function submitResult(_prev: ActionResult, formData: FormData): Pro
       [marketId, profile.id, seconds, kind, evidence_url, photo, photo_type, note],
     );
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not submit the result" };
+    return { error: e instanceof Error ? e.message : "Impossibile inviare il risultato" };
   }
 
   revalidatePath(`/markets/${marketId}`);
   revalidatePath("/admin");
-  return { ok: "Result submitted. An admin will check the proof and settle the market." };
+  return { ok: "Risultato inviato. Un admin verificherà la prova e liquidarà il mercato." };
 }
 
 /** Puts the current user in the Friends section, so anyone can create bets on their races. */
 export async function joinAsRunner(): Promise<ActionResult> {
   const profile = await getCurrentProfile();
-  if (!profile) return { error: "Log in first" };
+  if (!profile) return { error: "Devi accedere" };
   await query(
     `insert into athletes (name, user_id, avatar_url, category)
      select u.username, u.id, u.avatar_url, 'friend' from users u
@@ -67,5 +67,5 @@ export async function joinAsRunner(): Promise<ActionResult> {
     [profile.id],
   );
   revalidatePath("/", "layout");
-  return { ok: "You're in the Friends section: anyone can now bet on your races" };
+  return { ok: "Sei tra gli amici runner: ora chiunque può scommettere sulle tue gare" };
 }

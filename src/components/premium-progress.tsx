@@ -32,7 +32,7 @@ export function PremiumProgress({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-semibold">
-            {isPremium ? "You are Premium" : "Unlock Premium"}
+            {isPremium ? "Sei Premium" : "Sblocca Premium"}
             {isPremium && (
               <span className="rounded bg-amber-400/20 px-2 py-0.5 text-xs font-semibold text-amber-500">
                 PREMIUM
@@ -41,12 +41,12 @@ export function PremiumProgress({
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {isPremium
-              ? "Hit a personal best on a race with a registered bib and PolyRunner refunds the bib fee to your EUR wallet automatically."
-              : `Earn ${formatCredits(goal)} lifetime virtual credits to unlock Premium. Credits are not transferable or convertible to money.`}
+              ? "Fai un personal best su una gara con pettorale registrato e PolyRunner ti rimborsa automaticamente la quota sul wallet EUR."
+              : `Guadagna ${formatCredits(goal)} crediti virtuali lifetime per sbloccare Premium. I crediti non sono trasferibili né convertibili in denaro.`}
           </p>
         </div>
         <Link href="/races?bib=1" className={buttonVariants({ size: "sm" })}>
-          Find races for a PB
+          Trova gare per un PB
         </Link>
       </div>
 
@@ -54,10 +54,10 @@ export function PremiumProgress({
         <div className="flex flex-col gap-2">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>
-              Lifetime earned: <b className="text-foreground">{formatCredits(life)}</b>
+              Guadagnati lifetime: <b className="text-foreground">{formatCredits(life)}</b>
             </span>
             <span>
-              {pct}% · {formatCredits(remaining)} to go
+              {pct}% · mancano {formatCredits(remaining)}
             </span>
           </div>
           <div className="h-2.5 overflow-hidden rounded-full bg-muted">
@@ -70,25 +70,25 @@ export function PremiumProgress({
       )}
 
       <dl className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Available credits" value={formatCredits(balance)} />
+        <Stat label="Crediti disponibili" value={formatCredits(balance)} />
         <Stat
-          label="This week (Strava km)"
+          label="Questa settimana (km Strava)"
           value={
             weeklyKm != null
               ? `${weeklyKm} km → ${formatCredits(weeklyCredits ?? 0)}`
-              : "Sync Strava on Profile"
+              : "Sincronizza Strava dal Profilo"
           }
         />
-        <Stat label="EUR refunds wallet" value={formatEur(Number(eurBalance))} />
+        <Stat label="Wallet rimborsi EUR" value={formatEur(Number(eurBalance))} />
       </dl>
 
       <ul className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
         <li className="rounded-lg border bg-muted/30 px-3 py-2">
-          <b className="text-foreground">Weekly km</b> — 10 credits/km up to 40 km, then 5/km.
+          <b className="text-foreground">Km settimanali</b> — 10 crediti/km fino a 40 km, poi 5/km.
         </li>
         <li className="rounded-lg border bg-muted/30 px-3 py-2">
-          <b className="text-foreground">Premium perk</b> — automatic bib refund on personal best
-          (simulated EUR ledger).
+          <b className="text-foreground">Vantaggio Premium</b> — rimborso automatico del pettorale
+          sul personal best (ledger EUR simulato).
         </li>
       </ul>
     </section>

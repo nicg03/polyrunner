@@ -54,7 +54,7 @@ export function PredictionPanel({
       const res = await placeTimePrediction(null, fd);
       if (res?.error) toast.error(res.error);
       else {
-        toast.success(res?.ok ?? "Done");
+        toast.success(res?.ok ?? "Fatto");
         setTimeValue("");
         setStakeValue("");
       }
@@ -66,29 +66,29 @@ export function PredictionPanel({
       resolvedActual != null ? Math.abs(existing.predicted_seconds - resolvedActual) : null;
     return (
       <div className="flex flex-col gap-3 rounded-xl border bg-card p-4">
-        <h3 className="text-sm font-medium">Your prediction</h3>
+        <h3 className="text-sm font-medium">Il tuo pronostico</h3>
         <dl className="flex flex-col gap-1.5 text-sm">
-          <Row label="Predicted time" value={formatTime(existing.predicted_seconds)} />
-          <Row label="Stake" value={formatCredits(existing.stake)} />
+          <Row label="Tempo previsto" value={formatTime(existing.predicted_seconds)} />
+          <Row label="Puntata" value={formatCredits(existing.stake)} />
           {existing.payout != null ? (
             <Row
-              label="Payout"
+              label="Vincita"
               value={formatCredits(existing.payout)}
               highlight={existing.payout > 0}
             />
           ) : (
             <Row
-              label="Max if exact"
+              label="Max se esatto"
               value={formatCredits(
                 predictionPayout(Number(existing.stake), 0, maxErrorSeconds, maxMultiplier),
               )}
             />
           )}
-          {err != null && <Row label="Error" value={`${err}s`} />}
+          {err != null && <Row label="Scarto" value={`${err}s`} />}
         </dl>
         <p className="text-[11px] text-muted-foreground">
-          Closer to the real finish time returns more credits (up to {maxMultiplier}×). No odds
-          shown — virtual credits only, not transferable or convertible to cash.
+          Più sei vicino al tempo reale, più crediti ottieni (fino a {maxMultiplier}×). Nessuna quota
+          mostrata — solo crediti virtuali, non trasferibili né convertibili in denaro.
         </p>
       </div>
     );
@@ -97,28 +97,28 @@ export function PredictionPanel({
   return (
     <div className="flex flex-col gap-4 rounded-xl border bg-card p-4">
       <div>
-        <h3 className="text-sm font-medium">Predict finish time</h3>
+        <h3 className="text-sm font-medium">Pronostica il tempo di arrivo</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Stake virtual credits on an exact time. Payout shrinks with your error (zero beyond{" "}
-          {Math.round(maxErrorSeconds / 60)} min). No market odds.
+          Punta crediti virtuali su un tempo esatto. La vincita cala con lo scarto (zero oltre{" "}
+          {Math.round(maxErrorSeconds / 60)} min). Nessuna quota di mercato.
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs text-muted-foreground">Predicted time (mm:ss or h:mm:ss)</span>
+        <span className="text-xs text-muted-foreground">Tempo previsto (mm:ss o h:mm:ss)</span>
         <Input
           placeholder="1:45:00"
           value={timeValue}
           onChange={(e) => setTimeValue(e.target.value)}
           className="h-11 font-semibold"
         />
-        {timeValue && !validTime && <p className="text-xs text-no">Invalid time</p>}
+        {timeValue && !validTime && <p className="text-xs text-no">Tempo non valido</p>}
       </div>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Stake (credits)</span>
-          {balance !== null && <span>Balance: {formatCredits(balance)}</span>}
+          <span>Puntata (crediti)</span>
+          {balance !== null && <span>Saldo: {formatCredits(balance)}</span>}
         </div>
         <Input
           inputMode="decimal"
@@ -150,9 +150,9 @@ export function PredictionPanel({
 
       {previewMax != null && (
         <dl className="flex flex-col gap-1.5 text-sm">
-          <Row label="Max payout if exact" value={formatCredits(previewMax)} highlight />
+          <Row label="Vincita max se esatto" value={formatCredits(previewMax)} highlight />
           <Row
-            label={`Payout at ${Math.round(maxErrorSeconds / 2)}s error`}
+            label={`Vincita con ${Math.round(maxErrorSeconds / 2)}s di scarto`}
             value={formatCredits(
               predictionPayout(stake, maxErrorSeconds / 2, maxErrorSeconds, maxMultiplier),
             )}

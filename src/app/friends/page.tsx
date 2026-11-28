@@ -58,7 +58,7 @@ export default async function FriendsPage({ searchParams }: { searchParams: Prom
       {incoming.length > 0 && (
         <section className="flex flex-col rounded-xl border border-primary/40 bg-card">
           <h2 className="border-b px-4 py-3 font-medium">
-            Friend requests ({incoming.length})
+            Richieste di amicizia ({incoming.length})
           </h2>
           {incoming.map((r) => (
             <IncomingRow key={r.user_id} request={r} />
@@ -74,26 +74,26 @@ export default async function FriendsPage({ searchParams }: { searchParams: Prom
               name="q"
               defaultValue={search}
               autoFocus={!search}
-              placeholder="Search by name or username"
+              placeholder="Cerca per nome o username"
               className="h-9 pl-8"
             />
           </div>
           <button type="submit" className={buttonVariants({ size: "lg" })}>
-            Search
+            Cerca
           </button>
         </form>
         {!search ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            Type a name or username to find runners. Or share your link above so they find you.
+            Digita un nome o username per trovare runner. Oppure condividi il link qui sopra.
           </p>
         ) : results.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            No runners found for &ldquo;{search}&rdquo;. Ask them to join as a runner, then try again.
+            Nessun runner per &ldquo;{search}&rdquo;. Chiedi di entrare come runner e riprova.
           </p>
         ) : (
           <>
             <p className="px-4 pt-3 text-xs text-muted-foreground">
-              {results.length} {results.length === 1 ? "result" : "results"} for &ldquo;{search}&rdquo;
+              {results.length} {results.length === 1 ? "risultato" : "risultati"} per &ldquo;{search}&rdquo;
             </p>
             {results.map((r) => (
               <RunnerRow key={r.id} runner={r} />
@@ -103,10 +103,10 @@ export default async function FriendsPage({ searchParams }: { searchParams: Prom
       </section>
 
       <section className="flex flex-col rounded-xl border bg-card">
-        <h2 className="border-b px-4 py-3 font-medium">Your friends ({following.length})</h2>
+        <h2 className="border-b px-4 py-3 font-medium">I tuoi amici ({following.length})</h2>
         {following.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            You haven&apos;t added anyone yet. Search for a runner above and wait for them to accept.
+            Non hai ancora aggiunto nessuno. Cerca un runner sopra e attendi che accetti.
           </p>
         ) : (
           following.map((f) => <FriendRow key={f.id} friend={f} />)
@@ -137,7 +137,7 @@ function RunnerRow({ runner }: { runner: RunnerResult }) {
         <p className="truncate font-medium">{runner.name}</p>
         <p className="truncate text-xs text-muted-foreground">
           {runner.username && runner.username !== runner.name ? `@${runner.username} · ` : ""}
-          {runner.friends_count} {runner.friends_count === 1 ? "friend" : "friends"}
+          {runner.friends_count} {runner.friends_count === 1 ? "amico" : "amici"}
         </p>
       </div>
       <FriendButton athleteId={runner.id} status={runner.friendship} />
@@ -151,7 +151,7 @@ function FriendRow({ friend }: { friend: Athlete }) {
       <Avatar name={friend.name} url={friend.avatar_url} size={36} />
       <p className="min-w-0 flex-1 truncate font-medium">{friend.name}</p>
       <Link href={`/create?athlete=${friend.id}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-        Create a bet
+        Crea scommessa
       </Link>
       <FriendButton athleteId={friend.id} status="friends" />
     </div>

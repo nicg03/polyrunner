@@ -10,7 +10,7 @@ import { isStravaConfigured } from "@/lib/strava";
 import { formatPace, formatTime } from "@/lib/time";
 import type { ClaimStatus } from "@/lib/types";
 
-export const metadata = { title: "Profile · PolyRunner" };
+export const metadata = { title: "Profilo · PolyRunner" };
 
 export default async function ProfilePage() {
   const profile = await getCurrentProfile();
@@ -62,7 +62,7 @@ export default async function ProfilePage() {
         <div>
           <h1 className="text-2xl font-semibold">{profile.username}</h1>
           <p className="text-sm text-muted-foreground">
-            Your runner profile ·{" "}
+            Il tuo profilo runner ·{" "}
             <Link href="/wallet" className="text-primary hover:underline">
               Wallet
             </Link>
@@ -72,11 +72,11 @@ export default async function ProfilePage() {
             </Link>
             {" · "}
             <Link href="/races?bib=1" className="text-primary hover:underline">
-              Races for PB
+              Gare con PB
             </Link>
             {" · "}
             <Link href="/friends" className="text-primary hover:underline">
-              Friends
+              Amici
             </Link>
           </p>
         </div>
@@ -87,18 +87,18 @@ export default async function ProfilePage() {
           <div className="min-w-0 flex-1">
             {runner ? (
               <>
-                <p className="font-medium">You&apos;re listed as {runner.name}</p>
+                <p className="font-medium">Sei in elenco come {runner.name}</p>
                 <p className="text-muted-foreground">
-                  Friends who accept your request can bet on your races. After each race, submit your
-                  finish time with a proof.
+                  Gli amici che accettano la richiesta possono scommettere sulle tue gare. Dopo ogni
+                  gara, invia il tempo di arrivo con una prova.
                 </p>
               </>
             ) : (
               <>
-                <p className="font-medium">Running in a race?</p>
+                <p className="font-medium">Corri una gara?</p>
                 <p className="text-muted-foreground">
-                  Join as a runner so friends can find you, bet on your finish times, and you can
-                  publish verified personal bests.
+                  Entra come runner così gli amici possono trovarti, scommettere sui tuoi tempi e
+                  pubblicare personal best verificati.
                 </p>
               </>
             )}
@@ -113,34 +113,36 @@ export default async function ProfilePage() {
           >
             <span>
               <b>{m.race_name}</b>:{" "}
-              {m.submitted ? "result submitted, waiting for an admin" : "submit your finish time"}
+              {m.submitted
+                ? "risultato inviato, in attesa di verifica"
+                : "invia il tuo tempo di arrivo"}
             </span>
-            <span className="text-primary">{m.submitted ? "View" : "Submit"} →</span>
+            <span className="text-primary">{m.submitted ? "Vedi" : "Invia"} →</span>
           </Link>
         ))}
       </section>
 
       <section className="rounded-xl border border-amber-500/20 bg-amber-400/5 p-4 text-sm">
-        <p className="font-medium">Chase a PB with bib refund</p>
+        <p className="font-medium">Punta a un PB con rimborso pettorale</p>
         <p className="mt-1 text-muted-foreground">
-          Unlock{" "}
+          Sblocca{" "}
           <Link href="/premium" className="text-primary hover:underline">
             Premium
           </Link>
-          , register a bib on an upcoming race, then beat your PB — PolyRunner refunds the fee
-          automatically.{" "}
+          , registra un pettorale su una gara in programma, poi batti il tuo PB — PolyRunner
+          rimborsa la quota in automatico.{" "}
           <Link href="/races?bib=1" className="font-medium text-primary hover:underline">
-            Search races →
+            Cerca gare →
           </Link>
         </p>
       </section>
 
       <section className="flex flex-col gap-4 rounded-xl border bg-card p-4">
         <div>
-          <h2 className="font-medium">Personal bests</h2>
+          <h2 className="font-medium">Personal best</h2>
           <p className="text-sm text-muted-foreground">
-            Submit a PB with proof for your profile. Race-day PBs (after market resolve) also
-            trigger Premium bib refunds when you registered the bib.
+            Invia un PB con prova per il profilo. I PB del giorno gara (dopo la risoluzione del
+            mercato) attivano anche il rimborso pettorale Premium se hai registrato il pettorale.
           </p>
         </div>
 
@@ -159,7 +161,7 @@ export default async function ProfilePage() {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">No verified personal bests yet.</p>
+          <p className="text-sm text-muted-foreground">Ancora nessun personal best verificato.</p>
         )}
 
         {pendingPbs.map((p) => (
@@ -167,15 +169,16 @@ export default async function ProfilePage() {
             key={`${p.distance_km}-${p.time_seconds}`}
             className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm"
           >
-            Pending: {Number(p.distance_km)} km in {formatTime(p.time_seconds)} — waiting for an
-            admin.
+            In attesa: {Number(p.distance_km)} km in {formatTime(p.time_seconds)} — verifica in corso.
           </p>
         ))}
 
         {runner ? (
           <SubmitPbForm />
         ) : (
-          <p className="text-sm text-muted-foreground">Join as a runner to submit personal bests.</p>
+          <p className="text-sm text-muted-foreground">
+            Entra come runner per inviare personal best.
+          </p>
         )}
       </section>
 

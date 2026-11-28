@@ -23,20 +23,20 @@ export async function parseEvidence(formData: FormData, kind: EvidenceKind) {
   if (kind === "strava") {
     evidence_url = String(formData.get("evidence_url") ?? "").trim();
     if (!STRAVA_ACTIVITY_URL.test(evidence_url)) {
-      throw new Error("Paste the link of the Strava activity");
+      throw new Error("Incolla il link dell'attività Strava");
     }
   } else if (kind === "official") {
     evidence_url = httpUrl(String(formData.get("evidence_url") ?? "").trim());
-    if (!evidence_url) throw new Error("Paste a valid link to the results or proof page");
+    if (!evidence_url) throw new Error("Incolla un link valido ai risultati o alla prova");
   } else if (kind === "photo") {
     const file = formData.get("photo");
-    if (!(file instanceof File) || file.size === 0) throw new Error("Add a photo of your watch");
-    if (!PHOTO_TYPES.has(file.type)) throw new Error("Use a JPG, PNG or WebP photo");
-    if (file.size > MAX_PHOTO_BYTES) throw new Error("The photo is too large (max 5 MB)");
+    if (!(file instanceof File) || file.size === 0) throw new Error("Aggiungi una foto dell'orologio");
+    if (!PHOTO_TYPES.has(file.type)) throw new Error("Usa una foto JPG, PNG o WebP");
+    if (file.size > MAX_PHOTO_BYTES) throw new Error("La foto è troppo grande (max 5 MB)");
     photo = Buffer.from(await file.arrayBuffer());
     photo_type = file.type;
   } else {
-    throw new Error("Pick a type of proof");
+    throw new Error("Scegli un tipo di prova");
   }
 
   return { evidence_url, photo, photo_type };

@@ -24,15 +24,15 @@ export function BibRegisterButton({
   if (status === "refunded") {
     return (
       <p className="text-sm text-yes">
-        Bib refunded ({formatEur(priceEur)}) to your PolyRunner EUR wallet.
+        Pettorale rimborsato ({formatEur(priceEur)}) sul wallet EUR di PolyRunner.
       </p>
     );
   }
   if (status === "paid") {
     return (
       <p className="text-sm text-muted-foreground">
-        Bib registered ({formatEur(priceEur)}). Premium personal best → automatic refund to your EUR
-        wallet.
+        Pettorale registrato ({formatEur(priceEur)}). Con Premium, un personal best → rimborso
+        automatico sul wallet EUR.
       </p>
     );
   }
@@ -40,8 +40,8 @@ export function BibRegisterButton({
   return (
     <div className="flex flex-wrap items-center gap-3">
       <p className="text-sm text-muted-foreground">
-        Bib fee {formatEur(priceEur)} (simulated). Premium runners get an automatic refund on a
-        personal best.
+        Quota pettorale {formatEur(priceEur)} (simulata). I runner Premium ricevono un rimborso
+        automatico in caso di personal best.
       </p>
       {isLoggedIn ? (
         <Button
@@ -55,11 +55,11 @@ export function BibRegisterButton({
             })
           }
         >
-          {pending ? "Registering..." : "Confirm bib"}
+          {pending ? "Registrazione..." : "Conferma pettorale"}
         </Button>
       ) : (
         <Link href="/login" className={buttonVariants({ size: "sm", variant: "outline" })}>
-          Log in to register
+          Accedi per registrarti
         </Link>
       )}
     </div>

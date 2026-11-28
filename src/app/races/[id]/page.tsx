@@ -63,10 +63,10 @@ export default async function RacePage({ params }: { params: Promise<{ id: strin
       </section>
 
       {markets.length === 0 && (
-        <p className="py-16 text-center text-muted-foreground">No markets in this race yet.</p>
+        <p className="py-16 text-center text-muted-foreground">Ancora nessun mercato per questa gara.</p>
       )}
-      <MarketSection title="Finish times" markets={markets.filter((m) => m.kind === "time")} />
-      <MarketSection title="Other bets" markets={markets.filter((m) => m.kind === "custom")} />
+      <MarketSection title="Tempi di arrivo" markets={markets.filter((m) => m.kind === "time")} />
+      <MarketSection title="Altre scommesse" markets={markets.filter((m) => m.kind === "custom")} />
     </div>
   );
 }

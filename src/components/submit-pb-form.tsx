@@ -11,9 +11,9 @@ import type { EvidenceKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const KINDS: { id: EvidenceKind; label: string; icon: typeof Link2 }[] = [
-  { id: "strava", label: "Strava link", icon: Link2 },
-  { id: "photo", label: "Watch photo", icon: Camera },
-  { id: "official", label: "Official results", icon: Medal },
+  { id: "strava", label: "Link Strava", icon: Link2 },
+  { id: "photo", label: "Foto orologio", icon: Camera },
+  { id: "official", label: "Risultati ufficiali", icon: Medal },
 ];
 
 const MAX_SIDE = 2000;
@@ -61,17 +61,17 @@ export function SubmitPbForm() {
       <input type="hidden" name="evidence_kind" value={kind} />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label>Distance (km)</Label>
+          <Label>Distanza (km)</Label>
           <Input name="distance_km" required inputMode="decimal" placeholder="42.195" />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label>Time</Label>
+          <Label>Tempo</Label>
           <Input name="time" required placeholder="3:29:45" />
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Proof that this is your time</Label>
+        <Label>Prova che è il tuo tempo</Label>
         <div className="grid grid-cols-3 gap-2">
           {KINDS.map((k) => (
             <button
@@ -105,9 +105,9 @@ export function SubmitPbForm() {
         />
       )}
 
-      <Input name="note" maxLength={280} placeholder="Optional note (race name, bib…)" />
+      <Input name="note" maxLength={280} placeholder="Nota opzionale (gara, pettorale…)" />
       <Button type="submit" disabled={pending} className="self-start">
-        {pending ? "Sending..." : "Submit personal best"}
+        {pending ? "Invio..." : "Invia personal best"}
       </Button>
     </form>
   );

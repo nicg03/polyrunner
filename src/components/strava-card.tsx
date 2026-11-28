@@ -27,29 +27,30 @@ export function StravaCard({
       <div className="min-w-0 flex-1 text-sm">
         {connectedAs ? (
           <>
-            <p className="font-medium">Connected to Strava as {connectedAs}</p>
+            <p className="font-medium">Collegato a Strava come {connectedAs}</p>
             <p className="text-muted-foreground">
               {athleteName
-                ? "Your race-day runs are picked up automatically, no need to submit them by hand."
-                : "An admin still needs to link you to your athlete profile."}{" "}
-              Weekly km earn virtual credits (linear to 40 km, then a lower rate). Credits unlock
-              Premium and are not cash.
+                ? "Le tue corse del giorno gara vengono rilevate in automatico, senza invio manuale."
+                : "Un admin deve ancora collegarti al tuo profilo atleta."}{" "}
+              I km settimanali fanno guadagnare crediti virtuali (lineari fino a 40 km, poi a
+              ritmo ridotto). I crediti sbloccano Premium e non sono denaro.
             </p>
             {weeklyKm && (
               <p className="mt-1 text-xs">
-                This week: <b>{weeklyKm.km} km</b> → {weeklyKm.credits.toFixed(0)} credits awarded
+                Questa settimana: <b>{weeklyKm.km} km</b> → {weeklyKm.credits.toFixed(0)} crediti
+                assegnati
               </p>
             )}
           </>
         ) : (
           <>
-            <p className="font-medium">Strava (optional)</p>
+            <p className="font-medium">Strava (opzionale)</p>
             <p className="text-muted-foreground">
               {configured
-                ? "Connect Strava and your race-day runs are found automatically. Weekly kilometres also earn credits toward Premium."
+                ? "Collega Strava: le corse del giorno gara si trovano da sole. I chilometri settimanali fanno guadagnare crediti verso Premium."
                 : isAdmin
-                  ? "Strava is not configured yet: add your Strava API Client ID and Secret in the Admin page."
-                  : "Strava has not been set up by an admin yet."}
+                  ? "Strava non è ancora configurato: aggiungi Client ID e Secret dell’API Strava nella pagina Admin."
+                  : "Strava non è ancora stato configurato da un admin."}
             </p>
           </>
         )}
@@ -68,7 +69,7 @@ export function StravaCard({
               })
             }
           >
-            Sync weekly km
+            Sincronizza km settimanali
           </Button>
           <Button
             variant="outline"
@@ -82,17 +83,17 @@ export function StravaCard({
               })
             }
           >
-            Disconnect
+            Disconnetti
           </Button>
         </div>
       ) : configured ? (
-        <StravaButton href="/api/strava/connect?next=/profile">Connect with Strava</StravaButton>
+        <StravaButton href="/api/strava/connect?next=/profile">Collega con Strava</StravaButton>
       ) : isAdmin ? (
         <Link href="/admin" className="text-sm font-medium text-primary hover:underline">
-          Set up Strava in Admin
+          Configura Strava in Admin
         </Link>
       ) : (
-        <span className="text-xs text-muted-foreground">Not available yet</span>
+        <span className="text-xs text-muted-foreground">Non ancora disponibile</span>
       )}
     </section>
   );

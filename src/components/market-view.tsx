@@ -229,7 +229,7 @@ export function MarketView({
         {submitResult && (
           <SubmitResultForm
             marketId={market.id}
-            athleteName={athlete?.name ?? "the athlete"}
+            athleteName={athlete?.name ?? "l'atleta"}
             myClaim={submitResult.myClaim}
           />
         )}
@@ -240,7 +240,7 @@ export function MarketView({
               {isCustom && !resolved && outcomes[0] && (
                 <p className="mb-3 text-3xl font-semibold">
                   {formatPercent(outcomes[0].price)}{" "}
-                  <span className="text-base font-normal text-muted-foreground">chance</span>
+                  <span className="text-base font-normal text-muted-foreground">probabilità</span>
                 </p>
               )}
               <PriceChart outcomes={outcomes} snapshots={snapshots} colors={colors} />
@@ -248,8 +248,8 @@ export function MarketView({
 
             <div className="overflow-hidden rounded-xl border bg-card">
               <div className="flex items-center justify-between border-b px-4 py-2 text-xs text-muted-foreground">
-                <span>{isCustom ? "Outcome" : "Time bracket"}</span>
-                <span>Probability</span>
+                <span>{isCustom ? "Esito" : "Fascia oraria"}</span>
+                <span>Probabilità</span>
               </div>
               {outcomes.map((o, i) => {
                 const owned = positions[o.id] ?? 0;
@@ -270,7 +270,7 @@ export function MarketView({
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{o.label}</p>
                       {owned > 0 && (
-                        <p className="text-xs text-primary">You hold {owned.toFixed(2)} shares</p>
+                        <p className="text-xs text-primary">Hai {owned.toFixed(2)} quote</p>
                       )}
                     </div>
                     <span className="text-2xl font-semibold">
@@ -287,7 +287,7 @@ export function MarketView({
                             : "bg-yes/15 text-yes hover:bg-yes/25",
                         )}
                       >
-                        Buy {isCustom ? o.label : ""} {formatCents(o.price)}
+                        Compra {isCustom ? o.label : ""} {formatCents(o.price)}
                       </button>
                     )}
                   </div>
@@ -299,16 +299,16 @@ export function MarketView({
 
         {isExact && !resolved && (
           <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
-            Friends bet virtual credits on an exact finish time. The closer the guess, the higher
-            the return — odds are not shown. Credits are not transferable or convertible to money.
+            Gli amici puntano crediti virtuali su un tempo esatto. Più sei vicino, maggiore il
+            ritorno — non si mostrano quote. I crediti non sono trasferibili né convertibili in denaro.
           </div>
         )}
 
         <div className="rounded-xl border bg-card">
-          <h2 className="border-b px-4 py-3 font-medium">Activity</h2>
+          <h2 className="border-b px-4 py-3 font-medium">Attività</h2>
           {activity.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-              {isExact ? "No predictions yet. Be the first!" : "No trades yet. Be the first!"}
+              {isExact ? "Ancora nessun pronostico. Fai tu il primo!" : "Ancora nessuna operazione. Fai tu il primo!"}
             </p>
           ) : (
             <ul>
@@ -322,14 +322,14 @@ export function MarketView({
                     <b>{a.username}</b>{" "}
                     {a.side === "predict" ? (
                       <>
-                        predicted <b>{a.outcome_label}</b> for {formatCredits(a.cost)}
+                        ha pronosticato <b>{a.outcome_label}</b> per {formatCredits(a.cost)}
                       </>
                     ) : (
                       <>
                         <span className={a.side === "buy" ? "text-yes" : "text-no"}>
-                          {a.side === "buy" ? "bought" : "sold"}
+                          {a.side === "buy" ? "ha comprato" : "ha venduto"}
                         </span>{" "}
-                        {Number(a.shares).toFixed(1)} <b>{a.outcome_label}</b> shares for{" "}
+                        {Number(a.shares).toFixed(1)} <b>{a.outcome_label}</b> quote per{" "}
                         {formatCredits(a.cost)}
                       </>
                     )}
@@ -345,7 +345,7 @@ export function MarketView({
 
         {athlete?.bio && (
           <div className="rounded-xl border bg-card p-4 text-sm">
-            <h2 className="mb-1 font-medium">About {athlete.name}</h2>
+            <h2 className="mb-1 font-medium">Su {athlete.name}</h2>
             <p className="text-muted-foreground">{athlete.bio}</p>
             {athlete.personal_best_seconds && (
               <p className="mt-2">
@@ -378,7 +378,7 @@ export function MarketView({
           />
         ) : resolved ? (
           <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
-            This market is resolved. Winnings have been paid out automatically.
+            Questo mercato è risolto. I premi sono stati accreditati in automatico.
           </div>
         ) : (
           <TradePanel

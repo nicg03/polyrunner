@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Footprints, Timer, Users, Wallet } from "lucide-react";
+import { Footprints, Medal, Sparkles, Timer, Trophy, Users, Wallet } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentProfile } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -127,8 +127,50 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Chiarimento crediti */}
+      {/* Premium */}
       <section className="border-b border-border/60 bg-card/40">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:py-24">
+          <div className="max-w-2xl">
+            <p className="flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400">
+              <Sparkles className="size-4" />
+              Premium
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+              Cosa sblocchi con Premium
+            </h2>
+            <p className="mt-2 text-muted-foreground">
+              Si attiva con 5.000 crediti lifetime guadagnati correndo e giocando, oppure con
+              pagamento (4,99 €, simulato). Una volta sbloccato, resta per sempre.
+            </p>
+          </div>
+
+          <ul className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+            {PREMIUM_PERKS.map((p) => (
+              <li key={p.title} className="flex gap-4">
+                <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                  <p.icon className="size-5" />
+                </span>
+                <div>
+                  <h3 className="font-semibold">{p.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{p.body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-10">
+            <Link
+              href={profile ? "/premium" : "/login?next=/premium"}
+              className={cn(buttonVariants({ size: "lg", variant: "outline" }), "h-11 px-5")}
+            >
+              Scopri Premium
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Chiarimento crediti */}
+      <section className="border-b border-border/60">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:py-20">
           <div className="max-w-2xl">
             <h2 className="text-2xl font-semibold tracking-tight">Solo crediti virtuali</h2>
@@ -204,7 +246,25 @@ const FEATURES = [
   {
     icon: Wallet,
     title: "Wallet e progressi",
-    body: "Segui saldo, posizioni aperte e storico. Correndo e collegando Strava guadagni crediti; con Premium sblocchi vantaggi extra.",
+    body: "Segui saldo, posizioni aperte e storico. Correndo e collegando Strava guadagni crediti verso Premium.",
+  },
+];
+
+const PREMIUM_PERKS = [
+  {
+    icon: Trophy,
+    title: "Rimborso pettorale sul PB",
+    body: "Registri il pettorale di una gara, batti il tuo personal best e PolyRunner ti rimborsa automaticamente la quota sul wallet EUR.",
+  },
+  {
+    icon: Medal,
+    title: "PB al centro del gioco",
+    body: "I tuoi personal best verificati contano: dopo la gara, un PB Premium attiva il rimborso senza passaggi manuali dall’admin.",
+  },
+  {
+    icon: Sparkles,
+    title: "Sblocco permanente",
+    body: "Raggiungi 5.000 crediti lifetime (anche con i km Strava) oppure paga 4,99 € (stub). Premium non scade.",
   },
 ];
 

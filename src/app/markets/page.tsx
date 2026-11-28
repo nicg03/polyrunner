@@ -88,7 +88,7 @@ export default async function MarketsPage({
           </Link>
           {profile && (
             <Link href="/premium" className={buttonVariants({ size: "sm", variant: "outline" })}>
-              Premium progress
+              Avanzamento Premium
             </Link>
           )}
         </div>
@@ -120,26 +120,26 @@ export default async function MarketsPage({
           query={{ section, status, type }}
         />
         <Link href={href({ section, race, status })} className={chip(!type)}>
-          All bets
+          Tutte le scommesse
         </Link>
         <Link href={href({ section, race, status, type: "time" })} className={chip(type === "time")}>
-          Finish times
+          Tempi di arrivo
         </Link>
         <Link href={href({ section, race, status, type: "custom" })} className={chip(type === "custom")}>
-          Yes / No
+          Sì / No
         </Link>
         <Link href={href({ section, race, status, type: "beer" })} className={chip(type === "beer")}>
-          Beer
+          Birra
         </Link>
         <div className="ml-auto flex gap-2">
           <Link href={href({ section, race, type, status: "open" })} className={chip(status !== "resolved")}>
-            Active
+            Attivi
           </Link>
           <Link
             href={href({ section, race, type, status: "resolved" })}
             className={chip(status === "resolved")}
           >
-            Resolved
+            Risolti
           </Link>
         </div>
       </div>
@@ -147,12 +147,12 @@ export default async function MarketsPage({
       {markets.length === 0 ? (
         <p className="py-16 text-center text-muted-foreground">
           {category === "pro"
-            ? "No pro markets yet."
+            ? "Ancora nessun mercato Pro."
             : category === "friend"
               ? profile
-                ? "No bets on your friends yet. Add friends or create the first bet!"
-                : "No bets on friends yet. Create the first one!"
-              : "No markets here yet."}
+                ? "Ancora nessuna scommessa sugli amici. Aggiungi amici o crea la prima!"
+                : "Ancora nessuna scommessa sugli amici. Crea la prima!"
+              : "Ancora nessun mercato qui."}
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -166,9 +166,9 @@ export default async function MarketsPage({
 }
 
 const SECTIONS = [
-  { id: undefined, label: "All markets", icon: LayoutGrid },
-  { id: "friends", label: "Friends", icon: Users },
-  { id: "pros", label: "Pros", icon: Star },
+  { id: undefined, label: "Tutti i mercati", icon: LayoutGrid },
+  { id: "friends", label: "Amici", icon: Users },
+  { id: "pros", label: "Pro", icon: Star },
 ];
 
 function FriendsStrip({ friends, invite }: { friends: Athlete[]; invite: "signup" | "join" | null }) {
@@ -178,15 +178,15 @@ function FriendsStrip({ friends, invite }: { friends: Athlete[]; invite: "signup
         {friends.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {invite === "signup"
-              ? "Log in to see your friends and bet on their races."
-              : "No friends yet. Find runners, send a request, and wait until they accept."}
+              ? "Accedi per vedere i tuoi amici e scommettere sulle loro gare."
+              : "Ancora nessun amico. Cerca runner, invia una richiesta e attendi che la accettino."}
           </p>
         ) : (
           friends.map((f) => (
             <Link
               key={f.id}
               href={`/create?athlete=${f.id}`}
-              title={`Create a bet on ${f.name}`}
+              title={`Crea una scommessa su ${f.name}`}
               className="flex flex-col items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
               <Avatar name={f.name} url={f.avatar_url} size={40} />
@@ -197,18 +197,18 @@ function FriendsStrip({ friends, invite }: { friends: Athlete[]; invite: "signup
       </div>
       {invite === "signup" && (
         <Link href={`/login?next=${encodeURIComponent("/markets?section=friends")}`} className={buttonVariants()}>
-          Sign up to join
+          Registrati per entrare
         </Link>
       )}
       {invite === "join" && <JoinRunnerButton variant="outline" />}
       {invite !== "signup" && (
         <Link href="/friends" className={buttonVariants({ variant: "outline" })}>
-          <UserPlus /> Find friends
+          <UserPlus /> Trova amici
         </Link>
       )}
       {invite !== "signup" && friends.length > 0 && (
         <Link href="/create" className={buttonVariants()}>
-          <Plus /> Create a bet
+          <Plus /> Crea scommessa
         </Link>
       )}
     </section>

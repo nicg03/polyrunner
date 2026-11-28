@@ -12,9 +12,9 @@ import type { ClaimStatus, EvidenceKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const KINDS: { id: EvidenceKind; label: string; icon: typeof Link2 }[] = [
-  { id: "strava", label: "Strava link", icon: Link2 },
-  { id: "photo", label: "Watch photo", icon: Camera },
-  { id: "official", label: "Official results", icon: Medal },
+  { id: "strava", label: "Link Strava", icon: Link2 },
+  { id: "photo", label: "Foto orologio", icon: Camera },
+  { id: "official", label: "Risultati ufficiali", icon: Medal },
 ];
 
 const MAX_SIDE = 2000;
@@ -70,10 +70,10 @@ export function SubmitResultForm({
   return (
     <section id="submit-result" className="flex scroll-mt-20 flex-col gap-4 rounded-xl border bg-card p-4">
       <div>
-        <h2 className="font-medium">Submit the result</h2>
+        <h2 className="font-medium">Invia il risultato</h2>
         <p className="text-sm text-muted-foreground">
-          Enter {athleteName}&apos;s finish time and add a proof. An admin checks it before the
-          market settles.
+          Inserisci il tempo di arrivo di {athleteName} e allega una prova. Un admin lo verifica
+          prima che il mercato venga liquidato.
         </p>
       </div>
 
@@ -85,8 +85,8 @@ export function SubmitResultForm({
           )}
         >
           {myClaim.status === "rejected"
-            ? `Your last result (${formatTime(myClaim.time_seconds)}) was not accepted. You can submit a new one with a clearer proof.`
-            : `You submitted ${formatTime(myClaim.time_seconds)}. Waiting for an admin; sending a new one replaces it.`}
+            ? `L'ultimo risultato (${formatTime(myClaim.time_seconds)}) non è stato accettato. Puoi inviarne uno nuovo con una prova più chiara.`
+            : `Hai inviato ${formatTime(myClaim.time_seconds)}. In attesa di verifica; un nuovo invio sostituisce il precedente.`}
         </p>
       )}
 
@@ -95,12 +95,12 @@ export function SubmitResultForm({
         <input type="hidden" name="evidence_kind" value={kind} />
 
         <div className="flex flex-col gap-1.5">
-          <Label>Finish time (chip time if available)</Label>
+          <Label>Tempo di arrivo (chip time se disponibile)</Label>
           <Input name="time" required placeholder="1:45:30" className="max-w-40" />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label>Proof</Label>
+          <Label>Prova</Label>
           <div className="grid grid-cols-3 gap-2">
             {KINDS.map((k) => (
               <button
@@ -124,8 +124,8 @@ export function SubmitResultForm({
           <div className="flex flex-col gap-1.5">
             <Input name="photo" type="file" accept="image/jpeg,image/png,image/webp" required />
             <p className="text-xs text-muted-foreground">
-              A clear photo of the watch showing time and distance, ideally with the race bib or
-              finish area in the shot.
+              Foto nitida dell&apos;orologio con tempo e distanza, idealmente con pettorale o area
+              arrivo visibili.
             </p>
           </div>
         ) : (
@@ -141,19 +141,19 @@ export function SubmitResultForm({
             />
             <p className="text-xs text-muted-foreground">
               {kind === "strava"
-                ? "The activity must be visible to everyone on Strava, otherwise the admin can't open it."
-                : "The page of the race results where the athlete's name and time appear."}
+                ? "L'attività deve essere visibile a tutti su Strava, altrimenti l'admin non può aprirla."
+                : "La pagina dei risultati con nome dell'atleta e tempo."}
             </p>
           </div>
         )}
 
         <div className="flex flex-col gap-1.5">
-          <Label>Note (optional)</Label>
-          <Input name="note" maxLength={280} placeholder="Bib number, results row, anything that helps" />
+          <Label>Nota (opzionale)</Label>
+          <Input name="note" maxLength={280} placeholder="Pettorale, riga in classifica, ecc." />
         </div>
 
         <Button type="submit" disabled={pending} className="self-start">
-          {pending ? "Sending..." : "Submit result"}
+          {pending ? "Invio..." : "Invia risultato"}
         </Button>
       </form>
     </section>

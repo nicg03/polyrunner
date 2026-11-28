@@ -5,13 +5,18 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 const MESSAGES: Record<string, { ok?: string; error?: string }> = {
-  connected: { ok: "Strava connected" },
-  welcome: { ok: "Welcome to PolyRunner! You got 1,000 credits to start betting." },
-  welcome_back: { ok: "Welcome back!" },
-  denied: { error: "Strava access was not granted" },
-  scope: { error: "Allow PolyRunner to read your activities, so your race results can be verified" },
-  error: { error: "Something went wrong with Strava, please try again" },
-  unavailable: { error: "Strava is not set up yet. Ask the admin." },
+  connected: { ok: "Strava collegato" },
+  welcome: {
+    ok: "Benvenuto su PolyRunner! Hai ricevuto 1.000 crediti per iniziare a scommettere.",
+  },
+  welcome_back: { ok: "Bentornato!" },
+  denied: { error: "Accesso a Strava non concesso" },
+  scope: {
+    error:
+      "Consenti a PolyRunner di leggere le tue attività, così i risultati di gara possono essere verificati",
+  },
+  error: { error: "Qualcosa è andato storto con Strava, riprova" },
+  unavailable: { error: "Strava non è ancora configurato. Chiedi all'admin." },
 };
 
 /** Shows the outcome of the Strava redirect (?strava=...) once, then cleans the URL. */

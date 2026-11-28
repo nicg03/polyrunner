@@ -10,7 +10,7 @@ export function FreshStartBanner() {
 
   let message: string | null = null;
   if (month === 0 && date === 1) message = "Capodanno: riparti con un obiettivo chiaro.";
-  else if (date === 1) message = "Primo del mese: fresh start. Imposta i km della settimana.";
+  else if (date === 1) message = "Primo del mese: riparti. Imposta i km della settimana.";
   else if (day === 1) message = "È lunedì: nuova settimana, nuovi mercati.";
 
   if (!message) return null;

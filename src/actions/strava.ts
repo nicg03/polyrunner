@@ -8,27 +8,27 @@ import type { ActionResult } from "@/lib/types";
 
 export async function disconnectStrava(): Promise<ActionResult> {
   const profile = await getCurrentProfile();
-  if (!profile) return { error: "Log in first" };
+  if (!profile) return { error: "Devi accedere" };
   try {
     await disconnectAccount(profile.id);
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not disconnect Strava" };
+    return { error: e instanceof Error ? e.message : "Impossibile scollegare Strava" };
   }
   revalidatePath("/profile");
-  return { ok: "Strava disconnected" };
+  return { ok: "Strava scollegato" };
 }
 
 export async function refreshWeeklyKm(): Promise<ActionResult> {
   const profile = await getCurrentProfile();
-  if (!profile) return { error: "Log in first" };
+  if (!profile) return { error: "Devi accedere" };
   try {
     const result = await syncWeeklyKm(profile.id);
-    if (!result) return { error: "Connect Strava first" };
+    if (!result) return { error: "Collega prima Strava" };
     revalidatePath("/", "layout");
     return {
-      ok: `This week: ${result.km} km → ${formatCredits(result.credits)} credits (virtual, non-transferable)`,
+      ok: `Questa settimana: ${result.km} km → ${formatCredits(result.credits)} crediti (virtuali, non trasferibili)`,
     };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not sync weekly km" };
+    return { error: e instanceof Error ? e.message : "Impossibile sincronizzare i km settimanali" };
   }
 }

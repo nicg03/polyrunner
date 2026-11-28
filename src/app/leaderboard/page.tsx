@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { formatCredits } from "@/lib/format";
 import type { LeaderboardRow } from "@/lib/types";
 
-export const metadata = { title: "Leaderboard · PolyRunner" };
+export const metadata = { title: "Classifica · PolyRunner" };
 export const dynamic = "force-dynamic";
 
 const STARTING_BALANCE = 1000;
@@ -40,29 +40,29 @@ export default async function LeaderboardPage() {
       <div className="flex items-center gap-3">
         <Trophy className="size-7 text-[#f2c94c]" />
         <div>
-          <h1 className="text-2xl font-semibold">Leaderboard</h1>
+          <h1 className="text-2xl font-semibold">Classifica</h1>
           <p className="text-sm text-muted-foreground">
             {profile
-              ? "You and your accepted friends only. Balance + value of open positions."
-              : "Log in to see how you rank among your friends."}
+              ? "Solo tu e gli amici che avete accettato. Saldo + valore delle posizioni aperte."
+              : "Accedi per vedere come ti posizioni tra gli amici."}
           </p>
         </div>
       </div>
 
       {!profile ? (
         <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm">
-          <p className="text-muted-foreground">The leaderboard is private to each circle of friends.</p>
+          <p className="text-muted-foreground">La classifica è privata per ogni cerchia di amici.</p>
           <Link href="/login?next=/leaderboard" className={cn(buttonVariants(), "mt-4")}>
-            Log in
+            Accedi
           </Link>
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
           {rows.length <= 1 && (
             <p className="border-b px-4 py-3 text-sm text-muted-foreground">
-              Add friends so you have someone to compete with.{" "}
+              Aggiungi amici per avere qualcuno con cui competere.{" "}
               <Link href="/friends" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
-                <UserPlus className="size-3.5" /> Find friends
+                <UserPlus className="size-3.5" /> Trova amici
               </Link>
             </p>
           )}
@@ -86,10 +86,10 @@ export default async function LeaderboardPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">
                     {r.username}
-                    {r.id === profile.id ? " (you)" : ""}
+                    {r.id === profile.id ? " (tu)" : ""}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Balance {formatCredits(r.balance)} · Positions {formatCredits(r.positions_value)}
+                    Saldo {formatCredits(r.balance)} · Posizioni {formatCredits(r.positions_value)}
                   </p>
                 </div>
                 <div className="text-right">

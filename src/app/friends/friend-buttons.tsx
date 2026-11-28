@@ -36,7 +36,7 @@ export function FriendButton({
           })
         }
       >
-        <Check /> Friends
+        <Check /> Amici
       </Button>
     );
   }
@@ -55,14 +55,14 @@ export function FriendButton({
           })
         }
       >
-        <Clock /> Requested
+        <Clock /> In attesa
       </Button>
     );
   }
 
   if (status === "pending_in") {
     return (
-      <span className="text-xs text-muted-foreground">Respond in requests below</span>
+      <span className="text-xs text-muted-foreground">Rispondi nelle richieste sotto</span>
     );
   }
 
@@ -78,7 +78,7 @@ export function FriendButton({
         })
       }
     >
-      <UserPlus /> Add
+      <UserPlus /> Aggiungi
     </Button>
   );
 }
@@ -98,7 +98,7 @@ export function IncomingRequestButtons({ fromUserId }: { fromUserId: string }) {
           })
         }
       >
-        <Check /> Accept
+        <Check /> Accetta
       </Button>
       <Button
         size="sm"
@@ -112,7 +112,7 @@ export function IncomingRequestButtons({ fromUserId }: { fromUserId: string }) {
           })
         }
       >
-        <X /> Decline
+        <X /> Rifiuta
       </Button>
     </div>
   );

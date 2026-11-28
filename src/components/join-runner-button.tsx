@@ -19,7 +19,7 @@ export function JoinRunnerButton({ variant }: { variant?: "default" | "outline" 
         })
       }
     >
-      {pending ? "Joining..." : "Join as a runner"}
+      {pending ? "Registrazione..." : "Entra come runner"}
     </Button>
   );
 }

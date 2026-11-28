@@ -60,14 +60,14 @@ export function MarketCard({ market }: { market: MarketWithRelations }) {
       {resolved && (winner || (isExact && market.actual_time_seconds)) ? (
         <div className="flex items-center gap-2 rounded-lg bg-yes/10 px-3 py-2 text-sm text-yes">
           <CheckCircle2 className="size-4" />
-          <span className="font-medium">{winner?.label ?? "Official time"}</span>
+          <span className="font-medium">{winner?.label ?? "Tempo ufficiale"}</span>
           {market.actual_time_seconds && (
             <span className="ml-auto font-mono">{formatTime(market.actual_time_seconds)}</span>
           )}
         </div>
       ) : isExact ? (
         <div className="rounded-lg bg-muted/50 px-3 py-3 text-sm text-muted-foreground">
-          Stake credits on an exact finish time — closer guesses pay more. No odds shown.
+          Punta crediti su un tempo esatto — più sei vicino, più guadagni. Nessuna quota mostrata.
         </div>
       ) : isCustom ? (
         <div className="grid grid-cols-2 gap-2">
@@ -80,7 +80,7 @@ export function MarketCard({ market }: { market: MarketWithRelations }) {
                   : "rounded-lg bg-no/15 py-2 text-center text-sm font-medium text-no"
               }
             >
-              Buy {o.label}
+              Compra {o.label}
             </span>
           ))}
         </div>
@@ -109,12 +109,12 @@ export function MarketCard({ market }: { market: MarketWithRelations }) {
           {formatVolume(market.volume)} {stakeUnit(market.stake ?? "credits")} vol.
         </span>
         {resolved ? (
-          <span>Resolved</span>
+          <span>Risolto</span>
         ) : isClosed ? (
-          <span>Awaiting result</span>
+          <span>In attesa del risultato</span>
         ) : market.closes_at ? (
           <span className="flex items-center gap-1">
-            <Clock className="size-3" /> closes {formatRelative(market.closes_at)}
+            <Clock className="size-3" /> chiude {formatRelative(market.closes_at)}
           </span>
         ) : null}
       </div>
@@ -146,7 +146,7 @@ function YesGauge({ price }: { price: number }) {
         />
       </svg>
       <span className="-mt-2 text-sm font-semibold">{pct}%</span>
-      <span className="text-[10px] text-muted-foreground">chance</span>
+      <span className="text-[10px] text-muted-foreground">probabilità</span>
     </div>
   );
 }

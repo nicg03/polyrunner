@@ -26,7 +26,7 @@ export default async function PremiumPage() {
     ).catch(() => null),
     stravaEnabled
       ? queryOne<{ display_name: string | null; athlete_name: string | null }>(
-          `select coalesce(s.display_name, 'Strava athlete') as display_name,
+          `select coalesce(s.display_name, 'Atleta Strava') as display_name,
                   (select a.name from athletes a where a.user_id = s.user_id) as athlete_name
              from strava_accounts s where s.user_id = $1`,
           [profile.id],
@@ -49,6 +49,28 @@ export default async function PremiumPage() {
           batti il PB e ricevi il rimborso sul wallet EUR.
         </p>
       </div>
+
+      <ul className="grid gap-3 rounded-xl border bg-card p-4 text-sm sm:grid-cols-3">
+        <li>
+          <p className="font-medium">Rimborso pettorale</p>
+          <p className="mt-1 text-muted-foreground">
+            Con un PB su una gara con pettorale registrato, la quota torna sul wallet EUR in
+            automatico.
+          </p>
+        </li>
+        <li>
+          <p className="font-medium">PB verificati</p>
+          <p className="mt-1 text-muted-foreground">
+            I personal best dopo la risoluzione della gara contano per il rimborso Premium.
+          </p>
+        </li>
+        <li>
+          <p className="font-medium">Per sempre</p>
+          <p className="mt-1 text-muted-foreground">
+            Raggiungi {formatCredits(threshold)} lifetime o paga 4,99 € (stub): Premium non scade.
+          </p>
+        </li>
+      </ul>
 
       {!profile.is_premium && (
         <form
@@ -78,25 +100,25 @@ export default async function PremiumPage() {
       />
 
       <ol className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-sm">
-        <Step n={1} title="Earn credits">
-          Bet with friends, collect athlete bonuses, and sync weekly Strava km (
-          {formatCredits(10)}/km up to 40 km, then {formatCredits(5)}/km).
+        <Step n={1} title="Guadagna crediti">
+          Scommetti con gli amici, raccogli bonus atleta e sincronizza i km settimanali Strava (
+          {formatCredits(10)}/km fino a 40 km, poi {formatCredits(5)}/km).
         </Step>
-        <Step n={2} title={`Reach ${formatCredits(threshold)} lifetime`}>
-          Premium unlocks automatically and stays on forever once you hit the threshold.
+        <Step n={2} title={`Raggiungi ${formatCredits(threshold)} lifetime`}>
+          Premium si sblocca in automatico e resta attivo per sempre una volta raggiunta la soglia.
         </Step>
-        <Step n={3} title="Pick a race and register the bib">
-          Search upcoming races with a bib fee. Confirm the (simulated) bib so PolyRunner can
-          refund it later.{" "}
+        <Step n={3} title="Scegli una gara e registra il pettorale">
+          Cerca gare in arrivo con quota pettorale. Conferma il pettorale (simulato) così PolyRunner
+          può rimborsarlo dopo.{" "}
           <Link href="/races?bib=1" className="text-primary hover:underline">
-            Browse races →
+            Sfoglia le gare →
           </Link>
         </Step>
-        <Step n={4} title="Run a personal best">
-          After the race is resolved with a PB, Premium runners get an automatic EUR refund — no
-          admin step. Track PBs on{" "}
+        <Step n={4} title="Corri un personal best">
+          Dopo la risoluzione della gara con PB, i runner Premium ricevono un rimborso EUR
+          automatico — senza passaggio admin. Segui i PB su{" "}
           <Link href="/profile" className="text-primary hover:underline">
-            Profile
+            Profilo
           </Link>
           .
         </Step>
@@ -104,10 +126,10 @@ export default async function PremiumPage() {
 
       {(bibCount?.n ?? 0) > 0 && (
         <p className="rounded-lg border border-amber-500/30 bg-amber-400/10 px-4 py-3 text-sm">
-          You have {bibCount!.n} paid bib registration{bibCount!.n === 1 ? "" : "s"} waiting for a
-          Premium PB refund.{" "}
+          Hai {bibCount!.n} pettorale{bibCount!.n === 1 ? "" : "i"} registrat
+          {bibCount!.n === 1 ? "o" : "i"} in attesa di un rimborso Premium per PB.{" "}
           <Link href="/races?bib=1" className="font-medium text-primary hover:underline">
-            View races
+            Vedi le gare
           </Link>
         </p>
       )}
@@ -124,13 +146,13 @@ export default async function PremiumPage() {
 
       <div className="flex flex-wrap gap-2">
         <Link href="/races?bib=1" className={buttonVariants()}>
-          Find a race for PB refund
+          Trova una gara per il rimborso PB
         </Link>
         <Link href="/wallet" className={buttonVariants({ variant: "outline" })}>
-          Open wallet
+          Apri il wallet
         </Link>
         <Link href="/profile" className={buttonVariants({ variant: "ghost" })}>
-          Profile & PBs
+          Profilo e PB
         </Link>
       </div>
     </div>

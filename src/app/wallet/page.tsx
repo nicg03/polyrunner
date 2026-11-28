@@ -15,7 +15,7 @@ export const metadata = { title: "Wallet · PolyRunner" };
 const STARTING_BALANCE = 1000;
 
 const MARKET_TITLE_SQL = `
-  case when m.kind = 'custom' then m.question else 'What time will ' || a.name || ' run?' end
+  case when m.kind = 'custom' then m.question else 'Che tempo farà ' || a.name || '?' end
 `;
 
 interface PositionRow {
@@ -129,9 +129,9 @@ export default async function WalletPage() {
             )}
           </h1>
           <p className="text-sm text-muted-foreground">
-            @{profile.username} · virtual credits only (not transferable / not cash) ·{" "}
+            @{profile.username} · solo crediti virtuali (non trasferibili / non denaro) ·{" "}
             <Link href="/profile" className="text-primary hover:underline">
-              Profile
+              Profilo
             </Link>
           </p>
         </div>
@@ -148,19 +148,19 @@ export default async function WalletPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Positions value" value={formatCredits(positionsValue)} />
-        <Stat label="Total mark" value={formatCredits(total)} />
+        <Stat label="Valore posizioni" value={formatCredits(positionsValue)} />
+        <Stat label="Totale" value={formatCredits(total)} />
         <Stat
-          label="Profit / loss"
+          label="Profitto / perdita"
           value={`${totalPnl >= 0 ? "+" : ""}${formatCredits(totalPnl)}`}
           className={totalPnl >= 0 ? "text-yes" : "text-no"}
         />
-        <Stat label="EUR wallet (refunds)" value={formatEur(Number(profile.eur_balance))} />
+        <Stat label="Wallet EUR (rimborsi)" value={formatEur(Number(profile.eur_balance))} />
       </div>
 
       {predictions.filter((p) => p.status !== "resolved").length > 0 && (
         <section className="rounded-xl border bg-card">
-          <h2 className="border-b px-4 py-3 font-medium">Open time predictions</h2>
+          <h2 className="border-b px-4 py-3 font-medium">Pronostici tempo aperti</h2>
           <Table>
             <TableBody>
               {predictions
@@ -186,24 +186,24 @@ export default async function WalletPage() {
       )}
 
       <section className="rounded-xl border bg-card">
-        <h2 className="border-b px-4 py-3 font-medium">Open positions</h2>
+        <h2 className="border-b px-4 py-3 font-medium">Posizioni aperte</h2>
         {open.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            No open positions.{" "}
+            Nessuna posizione aperta.{" "}
             <Link href="/markets" className="text-primary hover:underline">
-              Browse markets
+              Sfoglia i mercati
             </Link>
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">Market</TableHead>
-                <TableHead>Outcome</TableHead>
-                <TableHead className="text-right">Shares</TableHead>
-                <TableHead className="text-right">Avg. price</TableHead>
-                <TableHead className="text-right">Current price</TableHead>
-                <TableHead className="text-right">Value</TableHead>
+                <TableHead className="pl-4">Mercato</TableHead>
+                <TableHead>Esito</TableHead>
+                <TableHead className="text-right">Quote</TableHead>
+                <TableHead className="text-right">Prezzo medio</TableHead>
+                <TableHead className="text-right">Prezzo attuale</TableHead>
+                <TableHead className="text-right">Valore</TableHead>
                 <TableHead className="pr-4 text-right">P&L</TableHead>
               </TableRow>
             </TableHeader>
@@ -234,7 +234,7 @@ export default async function WalletPage() {
 
       {settled.length > 0 && (
         <section className="rounded-xl border bg-card">
-          <h2 className="border-b px-4 py-3 font-medium">Resolved markets</h2>
+          <h2 className="border-b px-4 py-3 font-medium">Mercati risolti</h2>
           <Table>
             <TableBody>
               {settled.map((r) => (
@@ -245,9 +245,9 @@ export default async function WalletPage() {
                     </Link>{" "}
                     <span className="text-muted-foreground">· {r.outcome_label}</span>
                   </TableCell>
-                  <TableCell className="text-right">{r.shares.toFixed(2)} shares</TableCell>
+                  <TableCell className="text-right">{r.shares.toFixed(2)} quote</TableCell>
                   <TableCell className={cn("pr-4 text-right font-medium", r.won ? "text-yes" : "text-no")}>
-                    {r.won ? `Won +${formatCredits(r.shares)}` : `Lost -${formatCredits(r.cost_basis)}`}
+                    {r.won ? `Vinto +${formatCredits(r.shares)}` : `Perso -${formatCredits(r.cost_basis)}`}
                   </TableCell>
                 </TableRow>
               ))}
@@ -257,9 +257,9 @@ export default async function WalletPage() {
       )}
 
       <section className="rounded-xl border bg-card">
-        <h2 className="border-b px-4 py-3 font-medium">Trade history</h2>
+        <h2 className="border-b px-4 py-3 font-medium">Storico operazioni</h2>
         {trades.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">No trades yet.</p>
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">Ancora nessuna operazione.</p>
         ) : (
           <Table>
             <TableBody>
@@ -267,14 +267,14 @@ export default async function WalletPage() {
                 <TableRow key={t.id}>
                   <TableCell className="max-w-96 pl-4">
                     <span className={t.side === "buy" ? "text-yes" : "text-no"}>
-                      {t.side === "buy" ? "Buy" : "Sell"}
+                      {t.side === "buy" ? "Compra" : "Vendi"}
                     </span>{" "}
                     <Link href={`/markets/${t.market_id}`} className="hover:underline">
                       {t.title}
                     </Link>{" "}
                     <span className="text-muted-foreground">· {t.outcome_label}</span>
                   </TableCell>
-                  <TableCell className="text-right">{Number(t.shares).toFixed(2)} shares</TableCell>
+                  <TableCell className="text-right">{Number(t.shares).toFixed(2)} quote</TableCell>
                   <TableCell className="text-right">{formatCredits(t.cost)}</TableCell>
                   <TableCell className="pr-4 text-right text-muted-foreground">
                     {formatDateTime(t.created_at)}

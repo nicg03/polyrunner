@@ -16,20 +16,20 @@ export async function submitPersonalBest(
   formData: FormData,
 ): Promise<ActionResult> {
   const profile = await getCurrentProfile();
-  if (!profile) return { error: "Log in first" };
+  if (!profile) return { error: "Devi accedere" };
 
   try {
     const athlete = await queryOne<{ id: string }>(
       "select id from athletes where user_id = $1 and category = 'friend'",
       [profile.id],
     );
-    if (!athlete) throw new Error("Join as a runner first");
+    if (!athlete) throw new Error("Entra prima come runner");
 
     const distance = Number(str(formData, "distance_km").replace(",", "."));
-    if (!(distance > 0)) throw new Error("Enter the distance in km");
+    if (!(distance > 0)) throw new Error("Inserisci la distanza in km");
 
     const seconds = parseTime(str(formData, "time"));
-    if (!seconds) throw new Error("Invalid time (use mm:ss or h:mm:ss)");
+    if (!seconds) throw new Error("Tempo non valido (usa mm:ss o h:mm:ss)");
 
     const kind = str(formData, "evidence_kind") as EvidenceKind;
     const { evidence_url, photo, photo_type } = await parseEvidence(formData, kind);
@@ -50,13 +50,13 @@ export async function submitPersonalBest(
       [athlete.id, profile.id, distance, seconds, kind, evidence_url, photo, photo_type, note],
     );
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not submit the personal best" };
+    return { error: e instanceof Error ? e.message : "Impossibile inviare il personal best" };
   }
 
   revalidatePath("/profile");
   revalidatePath("/admin");
   return {
-    ok: `Personal best submitted (${str(formData, "distance_km")} km · ${str(formData, "time")}). An admin will verify the proof.`,
+    ok: `Personal best inviato (${str(formData, "distance_km")} km · ${str(formData, "time")}). In attesa di verifica della prova.`,
   };
 }
 
@@ -104,13 +104,13 @@ export async function acceptPbClaim(claimId: string): Promise<ActionResult> {
   revalidatePath("/profile");
   revalidatePath("/create");
   return {
-    ok: `Verified ${Number(claim.distance_km)} km PB: ${formatTime(claim.time_seconds)}`,
+    ok: `PB verificato su ${Number(claim.distance_km)} km: ${formatTime(claim.time_seconds)}`,
   };
 }
 
 export async function rejectPbClaim(claimId: string): Promise<ActionResult> {
   const profile = await getCurrentProfile();
-  if (!profile?.is_admin) return { error: "Only admins can do this" };
+  if (!profile?.is_admin) return { error: "Solo gli admin possono farlo" };
   await query(
     `update pb_claims set status = 'rejected', reviewed_by = $2, reviewed_at = now()
       where id = $1 and status = 'pending'`,
@@ -118,5 +118,5 @@ export async function rejectPbClaim(claimId: string): Promise<ActionResult> {
   );
   revalidatePath("/admin");
   revalidatePath("/profile");
-  return { ok: "Personal best rejected" };
+  return { ok: "Personal best rifiutato" };
 }
