@@ -4,11 +4,12 @@ import { MarketCard } from "@/components/market-card";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { Avatar } from "@/components/avatar";
 import { JoinRunnerButton } from "@/components/join-runner-button";
+import { RaceFilterSelect } from "@/components/race-filter-select";
 import { SetupNotice } from "@/components/setup-notice";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentProfile } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import { getFriends, getMarkets, getRaces, isUuid } from "@/lib/queries";
+import { getFriends, getMarkets, isUuid } from "@/lib/queries";
 import { isDatabaseConfigured } from "@/lib/db";
 import type { Athlete } from "@/lib/types";
 
@@ -24,10 +25,10 @@ export default async function MarketsPage({
   if (!isDatabaseConfigured) return <SetupNotice />;
 
   const { race, status = "open", type, section } = await searchParams;
+  const selectedRace = race && isUuid(race) ? race : undefined;
   const profile = await getCurrentProfile();
-  const [allMarkets, races, friends] = await Promise.all([
-    getMarkets({ raceId: race && isUuid(race) ? race : undefined }),
-    getRaces(),
+  const [allMarkets, friends] = await Promise.all([
+    getMarkets(),
     getFriends(profile?.id ?? null),
   ]);
   const friendIds = new Set(friends.map((f) => f.id));
@@ -37,8 +38,15 @@ export default async function MarketsPage({
       ? null
       : ("join" as const);
   const category = section === "friends" ? "friend" : section === "pros" ? "pro" : null;
+
+  // Opzioni gara: solo gare che hanno mercati (non l’intero catalogo).
+  const racesWithMarkets = [
+    ...new Map(allMarkets.map((m) => [m.race.id, m.race])).values(),
+  ].sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+
   const markets = allMarkets.filter(
     (m) =>
+      (!selectedRace || m.race_id === selectedRace) &&
       (status === "resolved" ? m.status === "resolved" : m.status !== "resolved") &&
       (!type ||
         (type === "beer" ? m.stake === "beer" : m.kind === type)) &&
@@ -106,17 +114,11 @@ export default async function MarketsPage({
       {section === "friends" && <FriendsStrip friends={friends} invite={invite} />}
 
       <div className="flex flex-wrap items-center gap-2">
-        <Link href={href({ section, status, type })} className={chip(!race)}>
-          All races
-        </Link>
-        {races.map((r) => (
-          <Link key={r.id} href={href({ section, race: r.id, status, type })} className={chip(race === r.id)}>
-            {r.name}
-          </Link>
-        ))}
-      </div>
-
-      <div className="-mt-3 flex flex-wrap items-center gap-2">
+        <RaceFilterSelect
+          races={racesWithMarkets}
+          value={selectedRace}
+          query={{ section, status, type }}
+        />
         <Link href={href({ section, race, status })} className={chip(!type)}>
           All bets
         </Link>
